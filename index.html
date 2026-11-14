@@ -72,33 +72,40 @@ kbd{font-family:inherit;font-size:11px;border:1px solid var(--line2);border-bott
 .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:4px}
 .seg button{border:0;background:none;min-width:52px;height:46px;border-radius:10px;font-weight:800;color:var(--dim);font-size:16px;padding:0 12px}
 .seg button.on{background:var(--fg);color:var(--ink)}
-.shiftbox{display:flex;align-items:center;gap:0;border:2px solid var(--fg);border-radius:16px;overflow:hidden}
-.shiftbox .lbl{padding:0 16px;text-align:center;line-height:1}
-.shiftbox .lbl small{display:block;font-size:10px;letter-spacing:.16em;color:var(--dim);font-weight:800;margin-bottom:3px}
-.shiftbox .lbl b{font-size:28px;font-variant-numeric:tabular-nums}
-.shiftbox button{border:0;background:var(--fg);color:var(--ink);height:62px;padding:0 22px;font-weight:900;font-size:17px;letter-spacing:.04em}
-.shiftbox button:active{background:#ccc}
-.onice{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;align-items:center}
-.onice .t{font-size:11px;letter-spacing:.14em;color:var(--dimmer);font-weight:800;margin-right:4px;white-space:nowrap}
-.onice button{flex:none;border:1px solid var(--line2);background:var(--panel2);border-radius:999px;padding:12px 20px;font-weight:800;color:var(--dim);font-size:15px}
-.onice button.on{background:var(--fg);color:var(--ink);border-color:var(--fg)}
 .gamegrid{display:grid;grid-template-columns:1fr 300px;gap:16px}
 @media (max-width:900px){.gamegrid{grid-template-columns:1fr}}
-.tabs{display:flex;gap:6px;margin-bottom:12px}
-.tabs button{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:14px;height:52px;font-weight:800;color:var(--dim);font-size:16px}
-.tabs button.on{border-color:var(--fg);color:var(--fg);background:var(--panel2)}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.tile{position:relative;border:1px solid var(--line2);background:linear-gradient(160deg,#1c1c1c,#0b0b0b);border-radius:18px;padding:14px;text-align:left;min-height:120px;display:flex;flex-direction:column;transition:transform .08s,opacity .2s}
-.tile:active{transform:scale(.96)}
-.tile.dim{opacity:.35}
-.tile .jn{font-size:38px;font-weight:900;line-height:1;letter-spacing:-.02em}
-.tile .nm{font-weight:700;font-size:15px;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tile .mem{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.3}
-.tile .pts{position:absolute;top:12px;right:12px;font-weight:900;font-size:22px;font-variant-numeric:tabular-nums}
-.tile .pts small{font-size:10px;color:var(--dim);font-weight:700;margin-left:2px}
-.tile .now{position:absolute;top:44px;right:12px;background:var(--fg);color:var(--ink);font-size:12px;font-weight:900;border-radius:999px;padding:2px 8px}
-.tile.big{min-height:170px}
-.tile.big .jn{font-size:30px}
+.teamrow,.lhead{position:relative;border:1px solid var(--line2);background:linear-gradient(160deg,#222,#0b0b0b);border-radius:16px;text-align:left;transition:transform .08s}
+.teamrow:active,.lhead:not(.static):active,.pb:active{transform:scale(.97)}
+.teamrow{width:100%;display:flex;align-items:center;gap:16px;padding:18px 20px;margin-bottom:12px;border-color:var(--fg)}
+.teamrow .lg{margin-left:auto}
+.ln{font-weight:900;font-size:19px;letter-spacing:-.01em}
+.lp{font-weight:900;font-size:20px;font-variant-numeric:tabular-nums}
+.lp small,.pp small{font-size:10px;color:var(--dim)}
+.lg{font-size:12px;color:var(--dim);font-weight:700}
+.lrow{display:grid;grid-template-columns:170px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.lhead{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px;min-height:76px}
+.lhead.static{background:none;border-style:dashed}
+.lhead .lg{margin-top:auto}
+.lplayers{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-content:start}
+.pb{position:relative;border:1px solid var(--line2);background:var(--panel2);border-radius:14px;min-height:76px;padding:12px 14px;text-align:left;display:flex;align-items:center;gap:8px;transition:transform .08s}
+.pn{font-weight:800;font-size:18px;flex:1;line-height:1.15}
+.pn small{display:block;font-size:12px;color:var(--dim);font-weight:700}
+.pp{font-weight:900;font-size:22px;font-variant-numeric:tabular-nums}
+.now{position:absolute;top:-7px;right:-5px;background:var(--fg);color:var(--ink);font-size:12px;font-weight:900;border-radius:999px;padding:2px 8px;border:2px solid #000}
+@media (max-width:700px){.lrow{grid-template-columns:1fr}}
+.emo{width:52px;height:46px;flex:none;border:1px solid var(--line);background:var(--panel2);border-radius:10px;font-size:24px;padding:0}
+.item .emo{width:44px;height:40px;border-color:transparent;background:transparent;font-size:22px}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stepper button{border:0;background:var(--panel2);width:40px;height:44px;font-size:20px;font-weight:800}
+.stepper span{min-width:58px;text-align:center;font-weight:900}
+.stepper span small{font-size:10px;color:var(--dim);margin-left:2px}
+.segs{display:flex;flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+.segs button{flex:1;border:0;background:none;border-radius:8px;padding:9px 4px;font-weight:800;font-size:13px;color:var(--dim)}
+.segs button.on{background:var(--fg);color:var(--ink)}
+#picker{position:fixed;z-index:70;display:none;background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:10px;box-shadow:0 20px 50px rgba(0,0,0,.6);width:316px}
+#picker.on{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+#picker button{border:0;background:none;font-size:26px;height:42px;border-radius:8px}
+#picker button:hover,#picker button:active{background:var(--line)}
 .goalbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
 .gb{position:relative;border:1px solid var(--line2);background:var(--panel2);border-radius:18px;padding:16px;min-height:104px;text-align:left;display:flex;flex-direction:column;gap:6px;transition:transform .08s}
 .gb:active{transform:scale(.95);background:var(--fg);color:var(--ink)}
@@ -113,9 +120,6 @@ kbd{font-family:inherit;font-size:11px;border:1px solid var(--line2);border-bott
 .fe .p{font-weight:900;font-size:15px;min-width:30px}
 .fe .t{flex:1;line-height:1.3}
 .fe .t small{color:var(--dimmer);display:block;font-size:11px}
-.teamtotal{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
-.teamtotal b{font-size:56px;font-weight:900;line-height:1}
-.teamtotal span{color:var(--dim);font-weight:700}
 
 /* start */
 .start{max-width:520px;margin:6vh auto;text-align:center}
@@ -171,6 +175,7 @@ label.ck{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px
   <section id="stats"></section>
 </main>
 <div id="sheet"></div>
+<div id="picker"></div>
 <div id="toast"><span id="toastMsg"></span><button data-act="undo">Undo</button></div>
 <input type="file" id="importFile" accept=".json,application/json" hidden>
 
@@ -181,11 +186,12 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const $ = s => document.querySelector(s);
 const SCOPES = [['individual','Individual'],['group','Line / Group'],['team','Whole Team']];
 const PERIODS = ['1','2','3','OT'];
+const EMOJI = ['⭐','🔥','💪','🎯','🏒','🥅','🚀','🛡️','🔙','⏱️','🔄','📣','🏆','👏','🧠','👀','🤝','⚡','💨','🧱','🙌','🎉','🐎','❤️','✅','🔺','🧊','🚨','💯','🥇','👊','🌟','😤','🫡','🏃'];
 
 function seed(){
   const g = (name, scope, points, icon) => ({id:uid(), name, scope, points, icon});
   const players = [], groups = [];
-  [['Red','Gio Dominic Zach'],['Blue','Luca Ben Preston'],['White','Jaxon Rico Andrew'],
+  [['Red Line','Gio Dominic Zach'],['Blue Line','Luca Ben Preston'],['White Line','Jaxon Rico Andrew'],
    ['D Pair 1','Owen S|Lincoln'],['D Pair 2','Parker Noah'],['D Pair 3','Charlotte OJ'],['Goalie','Olivia']]
   .forEach(([gname, names]) => {
     const members = (names.includes('|') ? names.split('|') : names.split(' ')).map(name => {
@@ -208,7 +214,14 @@ function seed(){
     ]
   };
 }
-function load(){ try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && d.players) return d; } catch(e){} return seed(); }
+function load(){
+  try { const d = JSON.parse(localStorage.getItem(KEY));
+    if (d && d.players){
+      if (!d.renamedLines){ d.groups.forEach(g => { if (['Red','Blue','White'].includes(g.name)) g.name += ' Line'; }); d.renamedLines = true; }
+      return d;
+    } } catch(e){}
+  return seed();
+}
 let S = load();
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){ alert('Could not save: ' + e.message); } }
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
@@ -256,9 +269,9 @@ function renderSetup(){
     const list = S.goals.filter(g => g.scope === sc);
     return `<div class="scopehead">${label}</div>` + (list.map(g => `
       <div class="item" style="flex-wrap:wrap">
-        <input style="width:46px;text-align:center;font-size:20px;padding:4px" data-edit="goals:${g.id}:icon" value="${esc(g.icon)}">
+        <button class="emo" data-act="pick" data-target="${g.id}">${esc(g.icon || '⭐')}</button>
         <input style="flex:1 1 70%;font-weight:700" data-edit="goals:${g.id}:name" value="${esc(g.name)}">
-        <span style="width:46px"></span>
+        <span style="width:44px"></span>
         <input type="number" class="num" data-edit="goals:${g.id}:points" value="${g.points}" title="Points"><span class="breakdown">pts</span>
         <select data-edit="goals:${g.id}:scope" style="flex:1;padding:6px 8px;font-size:13px" title="Who earns it">${SCOPES.map(([v,l]) => `<option value="${v}" ${v===sc?'selected':''}>${l}</option>`).join('')}</select>
         ${moveBtns('goals', g.id)}
@@ -283,12 +296,19 @@ function renderSetup(){
     </div>
     <div class="panel">
       <h2>Shift Goals</h2><p class="sub">What earns points, who earns it, and how many.</p>
-      <form data-form="goal" class="row" style="flex-wrap:wrap">
-        <input name="i" placeholder="⭐" style="width:52px;text-align:center">
-        <input class="grow" name="n" placeholder="New goal…" autocomplete="off">
-        <input type="number" name="p" value="1" class="num">
-        <select name="s">${SCOPES.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}</select>
-        <button class="btn primary">Add</button>
+      <form data-form="goal" style="display:flex;flex-direction:column;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px">
+        <div class="row">
+          <button type="button" class="emo" data-act="pick" data-target="new" id="newIcon">⭐</button>
+          <input type="hidden" name="i" value="⭐">
+          <input class="grow" name="n" placeholder="New goal, e.g. “Stopped at the net”" autocomplete="off">
+        </div>
+        <div class="segs">${SCOPES.map(([v,l],k) => `<button type="button" class="${v===(UI.newScope||'individual')?'on':''}" data-act="newscope" data-s="${v}">${l}</button>`).join('')}</div>
+        <input type="hidden" name="s" value="${UI.newScope||'individual'}">
+        <div class="row">
+          <div class="stepper"><button type="button" data-act="newpts" data-d="-1">−</button><span><b id="newPts">1</b><small>PTS</small></span><button type="button" data-act="newpts" data-d="1">+</button></div>
+          <input type="hidden" name="p" value="1">
+          <button class="btn primary" style="flex:1">Add Goal</button>
+        </div>
       </form>
       <div class="list" style="margin-top:0">${goals}</div>
     </div>
@@ -314,63 +334,46 @@ function renderGame(){
       </div>`;
     return;
   }
-  const evts = g.events, shiftEv = evts.filter(e => e.shift === g.shift);
-  const line = S.groups.find(x => x.id === UI.onIce);
-  const onSet = line ? new Set(line.members) : null;
+  const evts = g.events;
+  const nowCount = (type, id) => evts.filter(e => e.period === g.period && e.targetType === type && (type === 'team' || e.targetId === id)).length;
+  const badge = n => n ? `<span class="now">+${n}</span>` : '';
+  const pbtn = p => `<button class="pb" data-act="open" data-type="player" data-id="${p.id}">
+      <span class="pn">${p.number ? `<small>#${esc(p.number)}</small>` : ''}${esc(p.name)}</span>
+      <span class="pp">${evPoints(evts,'player',p.id)}</span>${badge(nowCount('player', p.id))}</button>`;
+  const grouped = new Set(S.groups.flatMap(gr => gr.members));
+  const others = S.players.filter(p => !grouped.has(p.id));
 
-  let body = '';
-  if (UI.tab === 'players'){
-    const ps = [...S.players].sort((a,b) => onSet ? (onSet.has(b.id) - onSet.has(a.id)) : 0);
-    body = `<div class="tiles">${ps.map(p => {
-      const now = shiftEv.filter(e => e.targetType === 'player' && e.targetId === p.id).length;
-      return `<button class="tile ${onSet && !onSet.has(p.id) ? 'dim' : ''}" data-act="open" data-type="player" data-id="${p.id}">
-        <div class="jn" ${p.number ? '' : 'style="font-size:26px;margin-top:auto;padding-right:44px;overflow-wrap:anywhere"'}>${esc(p.number || p.name)}</div>
-        <div class="pts">${evPoints(evts,'player',p.id)}<small>PTS</small></div>
-        ${now ? `<div class="now">+${now}</div>` : ''}
-        ${p.number ? `<div class="nm">${esc(p.name)}</div>` : ''}</button>`;
-    }).join('') || '<div class="empty">Add players in Setup</div>'}</div>`;
-  } else if (UI.tab === 'groups'){
-    body = `<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))">${S.groups.map(gr => {
-      const now = shiftEv.filter(e => e.targetType === 'group' && e.targetId === gr.id).length;
-      return `<button class="tile big ${UI.onIce && UI.onIce !== gr.id ? 'dim' : ''}" data-act="open" data-type="group" data-id="${gr.id}">
-        <div class="jn">${esc(gr.name)}</div>
-        <div class="pts">${evPoints(evts,'group',gr.id)}<small>PTS</small></div>
-        ${now ? `<div class="now">+${now}</div>` : ''}
-        <div class="mem" style="margin-top:auto">${gr.members.map(id => esc(pname(player(id)))).join(' · ') || 'No players'}</div></button>`;
-    }).join('') || '<div class="empty">Add lines in Setup</div>'}</div>`;
-  } else {
-    body = `<div class="teamtotal"><b>${evPoints(evts,'team')}</b><span>team points this game</span></div>` + goalButtons('team', 'team');
-  }
+  const rows = S.groups.map(gr => `
+    <div class="lrow">
+      <button class="lhead" data-act="open" data-type="group" data-id="${gr.id}">
+        <span class="ln">${esc(gr.name)}</span>
+        <span class="lp">${evPoints(evts,'group',gr.id)} <small>PTS</small></span>
+        <span class="lg">Line goals ›</span>${badge(nowCount('group', gr.id))}
+      </button>
+      <div class="lplayers">${gr.members.map(id => player(id)).filter(Boolean).map(pbtn).join('') || '<span class="breakdown">No players</span>'}</div>
+    </div>`).join('') + (others.length ? `
+    <div class="lrow"><div class="lhead static"><span class="ln">Other</span></div><div class="lplayers">${others.map(pbtn).join('')}</div></div>` : '');
+
+  const body = `
+    <button class="teamrow" data-act="open" data-type="team" data-id="team">
+      <span class="ln">Whole Team</span><span class="lp">${evPoints(evts,'team')} <small>PTS</small></span><span class="lg">Team goals ›</span>${badge(nowCount('team'))}
+    </button>
+    ${rows || '<div class="empty">Add players and lines in Setup</div>'}`;
 
   $('#game').innerHTML = `
     <div class="bar">
       <div class="vs"><small>${esc(g.date)}</small>${esc(g.name)}</div>
       <div class="seg">${PERIODS.map(p => `<button class="${g.period===p?'on':''}" data-act="period" data-p="${p}">${p==='OT'?'OT':'P'+p}</button>`).join('')}</div>
-      <div class="shiftbox">
-        <button data-act="shift" data-d="-1" style="background:none;color:var(--dim);padding:0 14px">−</button>
-        <div class="lbl"><small>SHIFT</small><b>${g.shift}</b></div>
-        <button data-act="shift" data-d="1">NEXT SHIFT ▸</button>
-      </div>
-      <button class="btn" data-act="endgame">End</button>
+      <button class="btn" data-act="endgame" style="height:56px">End Game</button>
     </div>
-    ${S.groups.length ? `<div class="onice"><span class="t">ON ICE</span>
-      <button class="${!UI.onIce?'on':''}" data-act="onice" data-id="">All</button>
-      ${S.groups.map(gr => `<button class="${UI.onIce===gr.id?'on':''}" data-act="onice" data-id="${gr.id}">${esc(gr.name)}</button>`).join('')}</div>` : ''}
     <div class="gamegrid">
-      <div>
-        <div class="tabs">
-          <button class="${UI.tab==='players'?'on':''}" data-act="tab" data-t="players">Players</button>
-          <button class="${UI.tab==='groups'?'on':''}" data-act="tab" data-t="groups">Lines</button>
-          <button class="${UI.tab==='team'?'on':''}" data-act="tab" data-t="team">Team</button>
-        </div>
-        ${body}
-      </div>
+      <div>${body}</div>
       <div class="panel">
         <h2>This game</h2>
         <p class="sub">${evts.length} awards · ${evts.reduce((a,e)=>a+e.points,0)} points</p>
         <div class="feed">${[...evts].reverse().slice(0,40).map(e => `
           <div class="fe"><span class="p">+${e.points}</span>
-            <span class="t">${esc(e.targetName)} — ${esc(e.goalName)}<small>${e.period==='OT'?'OT':'P'+e.period} · Shift ${e.shift}</small></span>
+            <span class="t">${esc(e.targetName)} — ${esc(e.goalName)}<small>${e.period==='OT'?'OT':'P'+e.period} · ${new Date(e.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}</small></span>
             <button class="ib del" data-act="delev" data-id="${e.id}">✕</button></div>`).join('') || '<div class="empty">Tap a player, line, or team to award points</div>'}</div>
       </div>
     </div>`;
@@ -381,17 +384,18 @@ function goalButtons(type, id){
   const goals = S.goals.filter(x => x.scope === scope);
   if (!goals.length) return `<div class="empty">No ${scope} goals — add some in Setup</div>`;
   return `<div class="goalbtns">${goals.map(x => {
-    const c = g.events.filter(e => e.shift === g.shift && e.goalId === x.id && e.targetType === type && (type==='team' || e.targetId === id)).length;
+    const c = g.events.filter(e => e.period === g.period && e.goalId === x.id && e.targetType === type && (type==='team' || e.targetId === id)).length;
     return `<button class="gb" data-act="award" data-goal="${x.id}" data-type="${type}" data-id="${id}">
       <span class="ic">${esc(x.icon || '⭐')}</span><span class="gn">${esc(x.name)}</span><span class="gp">+${x.points}</span>
-      ${c ? `<span class="cnt">×${c} this shift</span>` : ''}</button>`;
+      ${c ? `<span class="cnt">×${c} this period</span>` : ''}</button>`;
   }).join('')}</div>`;
 }
 function renderSheet(){
   const {type, id} = UI.sheet; const el = $('#sheet');
   let head;
   if (type === 'player'){ const p = player(id); head = `<div class="jn">${esc(p.number || '')}</div><div><h3>${esc(p.name)}</h3><small>Individual goals</small></div>`; }
-  else { const gr = S.groups.find(x => x.id === id); head = `<div><h3>${esc(gr.name)}</h3><small>${gr.members.map(m => esc(pname(player(m)))).join(' · ')}</small></div>`; }
+  else if (type === 'group'){ const gr = S.groups.find(x => x.id === id); head = `<div><h3>${esc(gr.name)}</h3><small>${gr.members.map(m => esc(pname(player(m)))).join(' · ')}</small></div>`; }
+  else head = `<div><h3>Whole Team</h3><small>Team goals</small></div>`;
   el.innerHTML = `<div class="s"><div class="sh">${head}<button class="btn primary" data-act="close">Done</button></div>${goalButtons(type, id)}</div>`;
   el.classList.add('on');
 }
@@ -401,7 +405,7 @@ function award(goalId, type, id){
   if (type === 'player'){ targetName = pname(player(id)); members = [id]; }
   else if (type === 'group'){ const gr = S.groups.find(x => x.id === id); targetName = gr.name; members = [...gr.members]; }
   else { targetName = 'Team'; members = S.players.map(p => p.id); }
-  const e = { id: uid(), ts: Date.now(), period: g.period, shift: g.shift, goalId, goalName: goal.name, points: Number(goal.points) || 0,
+  const e = { id: uid(), ts: Date.now(), period: g.period, goalId, goalName: goal.name, points: Number(goal.points) || 0,
               targetType: type, targetId: type === 'team' ? 'team' : id, targetName, members };
   g.events.push(e); save(); lastEvent = e;
   toast(`+${e.points} ${targetName} · ${goal.icon || ''} ${goal.name}`);
@@ -473,8 +477,8 @@ async function giveFile(name, text, type){
 function csv(){
   const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
   const games = UI.statsGame === 'all' ? S.games : S.games.filter(g => g.id === UI.statsGame);
-  const rows = [['date','game','period','shift','time','who_type','who','goal','points','players']];
-  games.forEach(g => g.events.forEach(e => rows.push([g.date, g.name, e.period, e.shift, new Date(e.ts).toLocaleTimeString(), e.targetType, e.targetName, e.goalName, e.points,
+  const rows = [['date','game','period','time','who_type','who','goal','points','players']];
+  games.forEach(g => g.events.forEach(e => rows.push([g.date, g.name, e.period, new Date(e.ts).toLocaleTimeString(), e.targetType, e.targetName, e.goalName, e.points,
     e.members.map(id => pname(player(id))).join('; ')])));
   return rows.map(r => r.map(q).join(',')).join('\n');
 }
@@ -498,12 +502,29 @@ const ACT = {
     save(); renderSetup();
   },
   member: d => { const g = S.groups.find(x => x.id === d.g); g.members = g.members.includes(d.p) ? g.members.filter(m => m !== d.p) : [...g.members, d.p]; save(); renderSetup(); },
+  pick: (d, b) => {
+    const pk = $('#picker'); UI.pickTarget = d.target;
+    pk.innerHTML = EMOJI.map(x => `<button type="button" data-act="picked" data-e="${x}">${x}</button>`).join('');
+    const r = b.getBoundingClientRect();
+    pk.style.left = Math.max(8, Math.min(r.left, innerWidth - 324)) + 'px';
+    pk.style.top = (r.bottom + 6 + 330 > innerHeight ? Math.max(8, r.top - 336) : r.bottom + 6) + 'px';
+    pk.classList.add('on');
+  },
+  picked: d => {
+    $('#picker').classList.remove('on');
+    if (UI.pickTarget === 'new'){ $('#newIcon').textContent = d.e; document.querySelector('form[data-form=goal] [name=i]').value = d.e; }
+    else { const g = S.goals.find(x => x.id === UI.pickTarget); if (g){ g.icon = d.e; save(); renderSetup(); } }
+  },
+  newscope: (d, b) => {
+    b.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelector('form[data-form=goal] [name=s]').value = UI.newScope = d.s;
+  },
+  newpts: d => {
+    const inp = document.querySelector('form[data-form=goal] [name=p]');
+    inp.value = Math.max(1, Math.min(20, (+inp.value || 0) + +d.d)); $('#newPts').textContent = inp.value;
+  },
   bulk: () => { $('#bulk').value.split('\n').map(s => s.trim()).filter(Boolean).forEach(addPlayer); save(); renderSetup(); },
   period: d => { curGame().period = d.p; save(); renderGame(); },
-  shift: d => { const g = curGame(); g.shift = Math.max(1, g.shift + +d.d); save(); renderGame();
-                if (+d.d > 0) toast(`Shift ${g.shift}`); },
-  onice: d => { UI.onIce = d.id || null; renderGame(); },
-  tab: d => { UI.tab = d.t; renderGame(); },
   open: d => { UI.sheet = {type: d.type, id: d.id}; renderSheet(); },
   close: () => { UI.sheet = null; $('#sheet').classList.remove('on'); },
   award: d => award(d.goal, d.type, d.id),
@@ -527,6 +548,7 @@ function addPlayer(raw){
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
+  if (!e.target.closest('#picker') && !(b && b.dataset.act === 'pick')) $('#picker').classList.remove('on');
   if (b) { ACT[b.dataset.act](b.dataset, b); return; }
   if (e.target.id === 'sheet') ACT.close();
 });
@@ -552,8 +574,8 @@ document.addEventListener('submit', e => {
   else if (kind === 'group' && v('n')) S.groups.push({ id: uid(), name: v('n'), members: [] });
   else if (kind === 'goal' && v('n')) S.goals.push({ id: uid(), name: v('n'), scope: v('s'), points: Number(v('p')) || 1, icon: v('i') || '⭐' });
   else if (kind === 'game'){
-    const g = { id: uid(), name: v('o') || 'Game', date: v('d'), period: '1', shift: 1, events: [], ended: false };
-    S.games.push(g); S.currentGameId = g.id; UI.onIce = null; save(); renderGame(); return;
+    const g = { id: uid(), name: v('o') || 'Game', date: v('d'), period: '1', events: [], ended: false };
+    S.games.push(g); S.currentGameId = g.id; save(); renderGame(); return;
   } else return;
   save(); renderSetup();
   const nf = document.querySelector(`form[data-form="${kind}"] input[name="n"]`); if (nf) nf.focus();
