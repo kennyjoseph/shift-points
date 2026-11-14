@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shift Points">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Shift Points</title>
+<style>
+:root{
+  --bg:#000; --panel:#0e0e0e; --panel2:#171717; --line:#2a2a2a; --line2:#3a3a3a;
+  --fg:#fff; --dim:#9a9a9a; --dimmer:#5f5f5f; --ink:#000;
+  --r:16px; --font:ui-rounded,-apple-system,"SF Pro Rounded","Helvetica Neue",system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);height:100%}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overscroll-behavior:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+input,select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none;min-width:0}
+input:focus,select:focus,textarea:focus{border-color:var(--fg)}
+input[type=number]{width:64px;text-align:center}
+
+/* header */
+header{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:20}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:15px}
+.puck{width:26px;height:26px;border-radius:50%;background:var(--fg);box-shadow:inset 0 -5px 0 #bbb}
+nav{margin-left:auto;display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px}
+nav button{border:0;background:none;padding:9px 20px;border-radius:999px;font-weight:700;color:var(--dim);font-size:15px}
+nav button.on{background:var(--fg);color:var(--ink)}
+main{padding:20px;max-width:1400px;margin:0 auto}
+section{display:none} section.on{display:block}
+
+/* generic */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.panel h2{margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--dim);font-weight:800}
+.panel .sub{color:var(--dimmer);font-size:13px;margin:0 0 14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
+.row{display:flex;gap:8px;align-items:center}
+.list{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.item{display:flex;gap:6px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px}
+.item input{background:transparent;border-color:transparent;padding:8px}
+.item input:focus{border-color:var(--line2);background:#000}
+.item .grow{flex:1}
+.ib{border:0;background:none;color:var(--dimmer);width:32px;height:32px;border-radius:8px;font-size:15px;flex:none}
+.ib:hover{background:var(--line);color:var(--fg)}
+.ib.del:hover{background:#fff;color:#000}
+.btn{border:1px solid var(--line2);background:var(--panel2);border-radius:12px;padding:10px 16px;font-weight:700}
+.btn.primary{background:var(--fg);color:var(--ink);border-color:var(--fg)}
+.btn:active{transform:scale(.97)}
+.num{width:52px!important;text-align:center;font-weight:800}
+.empty{color:var(--dimmer);font-size:14px;padding:14px;text-align:center;border:1px dashed var(--line);border-radius:12px}
+.scopehead{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer);margin:14px 0 2px;font-weight:800}
+details summary{color:var(--dim);font-size:13px;cursor:pointer;margin-top:10px}
+details textarea{width:100%;height:110px;margin-top:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:6px 4px 4px}
+.chip{border:1px solid var(--line2);background:transparent;border-radius:999px;padding:6px 12px;font-size:13px;color:var(--dim);font-weight:600}
+.chip.on{background:var(--fg);color:var(--ink);border-color:var(--fg)}
+.gcard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px}
+kbd{font-family:inherit;font-size:11px;border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--dim)}
+
+/* game */
+#game{user-select:none;-webkit-user-select:none}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px}
+.vs{font-weight:800;font-size:20px;margin-right:auto}
+.vs small{display:block;color:var(--dimmer);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:4px}
+.seg button{border:0;background:none;min-width:52px;height:46px;border-radius:10px;font-weight:800;color:var(--dim);font-size:16px;padding:0 12px}
+.seg button.on{background:var(--fg);color:var(--ink)}
+.shiftbox{display:flex;align-items:center;gap:0;border:2px solid var(--fg);border-radius:16px;overflow:hidden}
+.shiftbox .lbl{padding:0 16px;text-align:center;line-height:1}
+.shiftbox .lbl small{display:block;font-size:10px;letter-spacing:.16em;color:var(--dim);font-weight:800;margin-bottom:3px}
+.shiftbox .lbl b{font-size:28px;font-variant-numeric:tabular-nums}
+.shiftbox button{border:0;background:var(--fg);color:var(--ink);height:62px;padding:0 22px;font-weight:900;font-size:17px;letter-spacing:.04em}
+.shiftbox button:active{background:#ccc}
+.onice{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;align-items:center}
+.onice .t{font-size:11px;letter-spacing:.14em;color:var(--dimmer);font-weight:800;margin-right:4px;white-space:nowrap}
+.onice button{flex:none;border:1px solid var(--line2);background:var(--panel2);border-radius:999px;padding:12px 20px;font-weight:800;color:var(--dim);font-size:15px}
+.onice button.on{background:var(--fg);color:var(--ink);border-color:var(--fg)}
+.gamegrid{display:grid;grid-template-columns:1fr 300px;gap:16px}
+@media (max-width:900px){.gamegrid{grid-template-columns:1fr}}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:14px;height:52px;font-weight:800;color:var(--dim);font-size:16px}
+.tabs button.on{border-color:var(--fg);color:var(--fg);background:var(--panel2)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tile{position:relative;border:1px solid var(--line2);background:linear-gradient(160deg,#1c1c1c,#0b0b0b);border-radius:18px;padding:14px;text-align:left;min-height:120px;display:flex;flex-direction:column;transition:transform .08s,opacity .2s}
+.tile:active{transform:scale(.96)}
+.tile.dim{opacity:.35}
+.tile .jn{font-size:38px;font-weight:900;line-height:1;letter-spacing:-.02em}
+.tile .nm{font-weight:700;font-size:15px;margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .mem{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.3}
+.tile .pts{position:absolute;top:12px;right:12px;font-weight:900;font-size:22px;font-variant-numeric:tabular-nums}
+.tile .pts small{font-size:10px;color:var(--dim);font-weight:700;margin-left:2px}
+.tile .now{position:absolute;top:44px;right:12px;background:var(--fg);color:var(--ink);font-size:12px;font-weight:900;border-radius:999px;padding:2px 8px}
+.tile.big{min-height:170px}
+.tile.big .jn{font-size:30px}
+.goalbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.gb{position:relative;border:1px solid var(--line2);background:var(--panel2);border-radius:18px;padding:16px;min-height:104px;text-align:left;display:flex;flex-direction:column;gap:6px;transition:transform .08s}
+.gb:active{transform:scale(.95);background:var(--fg);color:var(--ink)}
+.gb .ic{font-size:30px;line-height:1}
+.gb .gn{font-weight:800;font-size:16px;line-height:1.2}
+.gb .gp{position:absolute;top:12px;right:14px;font-weight:900;font-size:18px}
+.gb .cnt{position:absolute;bottom:12px;right:12px;background:var(--fg);color:var(--ink);border-radius:999px;font-size:12px;font-weight:900;padding:2px 8px}
+.gb.flash{animation:flash .45s}
+@keyframes flash{0%{background:var(--fg);color:var(--ink)}100%{}}
+.feed{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto}
+.fe{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:10px;padding:8px 6px 8px 10px;font-size:13px}
+.fe .p{font-weight:900;font-size:15px;min-width:30px}
+.fe .t{flex:1;line-height:1.3}
+.fe .t small{color:var(--dimmer);display:block;font-size:11px}
+.teamtotal{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.teamtotal b{font-size:56px;font-weight:900;line-height:1}
+.teamtotal span{color:var(--dim);font-weight:700}
+
+/* start */
+.start{max-width:520px;margin:6vh auto;text-align:center}
+.start h1{font-size:44px;margin:0 0 6px;letter-spacing:-.02em}
+.start p{color:var(--dim)}
+.start .f{display:flex;flex-direction:column;gap:10px;margin-top:24px;text-align:left}
+.start input{padding:16px;font-size:18px;border-radius:14px}
+.start .btn{padding:18px;font-size:18px;border-radius:14px}
+
+/* sheet */
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:50;display:none;align-items:flex-end;justify-content:center}
+#sheet.on{display:flex}
+#sheet .s{background:var(--panel);border:1px solid var(--line2);border-bottom:0;border-radius:26px 26px 0 0;width:100%;max-width:900px;padding:20px 20px calc(20px + env(safe-area-inset-bottom));animation:up .2s ease-out;max-height:85vh;overflow:auto;user-select:none;-webkit-user-select:none}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+#sheet .sh{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+#sheet .sh .jn{font-size:44px;font-weight:900;line-height:1}
+#sheet .sh h3{margin:0;font-size:22px}
+#sheet .sh small{color:var(--dim);font-weight:600}
+#sheet .sh .btn{margin-left:auto;padding:14px 26px;font-size:17px}
+
+/* toast */
+#toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top));transform:translate(-50%,-140px);background:var(--fg);color:var(--ink);border-radius:999px;padding:10px 10px 10px 22px;display:flex;align-items:center;gap:14px;font-weight:800;z-index:60;transition:transform .25s cubic-bezier(.2,1.4,.4,1);box-shadow:0 10px 40px rgba(255,255,255,.15)}
+#toast.on{transform:translate(-50%,0)}
+#toast button{border:0;background:var(--ink);color:var(--fg);border-radius:999px;padding:10px 18px;font-weight:800}
+
+/* stats */
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:9px 6px;text-align:left;border-bottom:1px solid var(--line)}
+th{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.barc{width:40%}
+.barv{height:8px;background:var(--fg);border-radius:4px;min-width:2px}
+.rank{color:var(--dimmer);width:28px;font-weight:800}
+.bigstat{font-size:64px;font-weight:900;line-height:1}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.toolbar select{padding:12px 14px;border-radius:12px}
+label.ck{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px}
+.breakdown{color:var(--dimmer);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><img src="logo.png" alt="Clarence" style="height:38px;border-radius:6px">Shift Points</div>
+  <nav>
+    <button data-act="view" data-v="setup">Setup</button>
+    <button data-act="view" data-v="game">Game</button>
+    <button data-act="view" data-v="stats">Stats</button>
+  </nav>
+</header>
+<main>
+  <section id="setup"></section>
+  <section id="game"></section>
+  <section id="stats"></section>
+</main>
+<div id="sheet"></div>
+<div id="toast"><span id="toastMsg"></span><button data-act="undo">Undo</button></div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+
+<script>
+const KEY = 'shiftpoints.v1';
+const uid = () => Math.random().toString(36).slice(2, 10);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = s => document.querySelector(s);
+const SCOPES = [['individual','Individual'],['group','Line / Group'],['team','Whole Team']];
+const PERIODS = ['1','2','3','OT'];
+
+function seed(){
+  const g = (name, scope, points, icon) => ({id:uid(), name, scope, points, icon});
+  const players = [], groups = [];
+  [['Red','Gio Dominic Zach'],['Blue','Luca Ben Preston'],['White','Jaxon Rico Andrew'],
+   ['D Pair 1','Owen S|Lincoln'],['D Pair 2','Parker Noah'],['D Pair 3','Charlotte OJ'],['Goalie','Olivia']]
+  .forEach(([gname, names]) => {
+    const members = (names.includes('|') ? names.split('|') : names.split(' ')).map(name => {
+      const p = {id:uid(), number:'', name}; players.push(p); return p.id;
+    });
+    groups.push({id:uid(), name:gname, members});
+  });
+  return {
+    players, groups, games: [], currentGameId: null,
+    goals: [
+      g('Backchecked hard','individual',1,'🔙'),
+      g('Won a puck battle','individual',1,'💪'),
+      g('Tape-to-tape pass','individual',1,'🎯'),
+      g('Quick line change','individual',1,'⏱️'),
+      g('Clean breakout','group',2,'🚀'),
+      g('3 passes in O-zone','group',2,'🔺'),
+      g('Everyone back on D','group',2,'🛡️'),
+      g('Great bench energy','team',3,'📣'),
+      g('Won the period','team',3,'🏆'),
+    ]
+  };
+}
+function load(){ try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && d.players) return d; } catch(e){} return seed(); }
+let S = load();
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){ alert('Could not save: ' + e.message); } }
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+
+let UI = { view: localStorage.getItem('shiftpoints.view') || 'setup', tab: 'players', onIce: null, statsGame: 'all', share: false, sheet: null };
+let lastEvent = null, toastTimer = null;
+
+const curGame = () => S.games.find(g => g.id === S.currentGameId && !g.ended);
+const player = id => S.players.find(p => p.id === id);
+const pname = p => p ? (p.number ? '#' + p.number + ' ' : '') + p.name : '?';
+
+/* ---------------- VIEW SWITCH ---------------- */
+function setView(v){
+  UI.view = v; localStorage.setItem('shiftpoints.view', v);
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  document.querySelectorAll('main section').forEach(s => s.classList.toggle('on', s.id === v));
+  render();
+}
+function render(){ ({setup:renderSetup, game:renderGame, stats:renderStats})[UI.view](); }
+
+/* ---------------- SETUP ---------------- */
+function moveBtns(coll, id){
+  return `<button class="ib" data-act="move" data-coll="${coll}" data-id="${id}" data-dir="-1" title="Move up">▲</button>
+          <button class="ib" data-act="move" data-coll="${coll}" data-id="${id}" data-dir="1" title="Move down">▼</button>
+          <button class="ib del" data-act="del" data-coll="${coll}" data-id="${id}" title="Delete">✕</button>`;
+}
+function renderSetup(){
+  const players = S.players.map(p => `
+    <div class="item">
+      <input class="num" data-edit="players:${p.id}:number" value="${esc(p.number)}" placeholder="#" inputmode="numeric">
+      <input class="grow" data-edit="players:${p.id}:name" value="${esc(p.name)}">
+      ${moveBtns('players', p.id)}
+    </div>`).join('') || '<div class="empty">No players yet</div>';
+
+  const groups = S.groups.map(g => `
+    <div class="gcard">
+      <div class="row">
+        <input class="grow" style="background:transparent;border-color:transparent;font-weight:800" data-edit="groups:${g.id}:name" value="${esc(g.name)}">
+        ${moveBtns('groups', g.id)}
+      </div>
+      <div class="chips">${S.players.map(p => `<button class="chip ${g.members.includes(p.id) ? 'on' : ''}" data-act="member" data-g="${g.id}" data-p="${p.id}">${esc(pname(p))}</button>`).join('') || '<span class="breakdown">Add players first</span>'}</div>
+    </div>`).join('') || '<div class="empty">No lines yet</div>';
+
+  const goals = SCOPES.map(([sc, label]) => {
+    const list = S.goals.filter(g => g.scope === sc);
+    return `<div class="scopehead">${label}</div>` + (list.map(g => `
+      <div class="item" style="flex-wrap:wrap">
+        <input style="width:46px;text-align:center;font-size:20px;padding:4px" data-edit="goals:${g.id}:icon" value="${esc(g.icon)}">
+        <input style="flex:1 1 70%;font-weight:700" data-edit="goals:${g.id}:name" value="${esc(g.name)}">
+        <span style="width:46px"></span>
+        <input type="number" class="num" data-edit="goals:${g.id}:points" value="${g.points}" title="Points"><span class="breakdown">pts</span>
+        <select data-edit="goals:${g.id}:scope" style="flex:1;padding:6px 8px;font-size:13px" title="Who earns it">${SCOPES.map(([v,l]) => `<option value="${v}" ${v===sc?'selected':''}>${l}</option>`).join('')}</select>
+        ${moveBtns('goals', g.id)}
+      </div>`).join('') || '<div class="empty" style="padding:8px">None</div>');
+  }).join('');
+
+  $('#setup').innerHTML = `
+  <div class="grid3">
+    <div class="panel">
+      <h2>Roster</h2><p class="sub">Type a number and name, press <kbd>Enter</kbd>. e.g. “12 Ava”</p>
+      <form data-form="player" class="row"><input class="grow" name="n" placeholder="12 Ava Smith" autocomplete="off"><button class="btn primary">Add</button></form>
+      <details><summary>Paste a whole list</summary>
+        <textarea id="bulk" placeholder="One player per line&#10;12 Ava Smith&#10;7 Leo Park"></textarea>
+        <button class="btn" data-act="bulk" style="margin-top:8px">Add all</button>
+      </details>
+      <div class="list">${players}</div>
+    </div>
+    <div class="panel">
+      <h2>Lines & Groups</h2><p class="sub">Tap players to put them on a line. A player can be in more than one group.</p>
+      <form data-form="group" class="row"><input class="grow" name="n" placeholder="Line 1, D-pair 2, PP unit…" autocomplete="off"><button class="btn primary">Add</button></form>
+      <div class="list">${groups}</div>
+    </div>
+    <div class="panel">
+      <h2>Shift Goals</h2><p class="sub">What earns points, who earns it, and how many.</p>
+      <form data-form="goal" class="row" style="flex-wrap:wrap">
+        <input name="i" placeholder="⭐" style="width:52px;text-align:center">
+        <input class="grow" name="n" placeholder="New goal…" autocomplete="off">
+        <input type="number" name="p" value="1" class="num">
+        <select name="s">${SCOPES.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}</select>
+        <button class="btn primary">Add</button>
+      </form>
+      <div class="list" style="margin-top:0">${goals}</div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- GAME ---------------- */
+function evPoints(evts, type, id){ return evts.filter(e => e.targetType === type && (type === 'team' || e.targetId === id)).reduce((a,e) => a + e.points, 0); }
+function renderGame(){
+  const g = curGame();
+  if (!g){
+    const today = new Date().toISOString().slice(0,10);
+    $('#game').innerHTML = `
+      <div class="start">
+        <img src="logo.png" alt="Clarence" style="width:220px;border-radius:12px;margin-bottom:20px">
+        <h1>Game time.</h1>
+        <p>${S.players.length} players · ${S.groups.length} lines · ${S.goals.length} goals</p>
+        <form data-form="game" class="f">
+          <input name="o" placeholder="Opponent (e.g. vs Sabres)" autocomplete="off">
+          <input name="d" type="date" value="${today}">
+          <button class="btn primary">Start Game</button>
+        </form>
+      </div>`;
+    return;
+  }
+  const evts = g.events, shiftEv = evts.filter(e => e.shift === g.shift);
+  const line = S.groups.find(x => x.id === UI.onIce);
+  const onSet = line ? new Set(line.members) : null;
+
+  let body = '';
+  if (UI.tab === 'players'){
+    const ps = [...S.players].sort((a,b) => onSet ? (onSet.has(b.id) - onSet.has(a.id)) : 0);
+    body = `<div class="tiles">${ps.map(p => {
+      const now = shiftEv.filter(e => e.targetType === 'player' && e.targetId === p.id).length;
+      return `<button class="tile ${onSet && !onSet.has(p.id) ? 'dim' : ''}" data-act="open" data-type="player" data-id="${p.id}">
+        <div class="jn" ${p.number ? '' : 'style="font-size:26px;margin-top:auto;padding-right:44px;overflow-wrap:anywhere"'}>${esc(p.number || p.name)}</div>
+        <div class="pts">${evPoints(evts,'player',p.id)}<small>PTS</small></div>
+        ${now ? `<div class="now">+${now}</div>` : ''}
+        ${p.number ? `<div class="nm">${esc(p.name)}</div>` : ''}</button>`;
+    }).join('') || '<div class="empty">Add players in Setup</div>'}</div>`;
+  } else if (UI.tab === 'groups'){
+    body = `<div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr))">${S.groups.map(gr => {
+      const now = shiftEv.filter(e => e.targetType === 'group' && e.targetId === gr.id).length;
+      return `<button class="tile big ${UI.onIce && UI.onIce !== gr.id ? 'dim' : ''}" data-act="open" data-type="group" data-id="${gr.id}">
+        <div class="jn">${esc(gr.name)}</div>
+        <div class="pts">${evPoints(evts,'group',gr.id)}<small>PTS</small></div>
+        ${now ? `<div class="now">+${now}</div>` : ''}
+        <div class="mem" style="margin-top:auto">${gr.members.map(id => esc(pname(player(id)))).join(' · ') || 'No players'}</div></button>`;
+    }).join('') || '<div class="empty">Add lines in Setup</div>'}</div>`;
+  } else {
+    body = `<div class="teamtotal"><b>${evPoints(evts,'team')}</b><span>team points this game</span></div>` + goalButtons('team', 'team');
+  }
+
+  $('#game').innerHTML = `
+    <div class="bar">
+      <div class="vs"><small>${esc(g.date)}</small>${esc(g.name)}</div>
+      <div class="seg">${PERIODS.map(p => `<button class="${g.period===p?'on':''}" data-act="period" data-p="${p}">${p==='OT'?'OT':'P'+p}</button>`).join('')}</div>
+      <div class="shiftbox">
+        <button data-act="shift" data-d="-1" style="background:none;color:var(--dim);padding:0 14px">−</button>
+        <div class="lbl"><small>SHIFT</small><b>${g.shift}</b></div>
+        <button data-act="shift" data-d="1">NEXT SHIFT ▸</button>
+      </div>
+      <button class="btn" data-act="endgame">End</button>
+    </div>
+    ${S.groups.length ? `<div class="onice"><span class="t">ON ICE</span>
+      <button class="${!UI.onIce?'on':''}" data-act="onice" data-id="">All</button>
+      ${S.groups.map(gr => `<button class="${UI.onIce===gr.id?'on':''}" data-act="onice" data-id="${gr.id}">${esc(gr.name)}</button>`).join('')}</div>` : ''}
+    <div class="gamegrid">
+      <div>
+        <div class="tabs">
+          <button class="${UI.tab==='players'?'on':''}" data-act="tab" data-t="players">Players</button>
+          <button class="${UI.tab==='groups'?'on':''}" data-act="tab" data-t="groups">Lines</button>
+          <button class="${UI.tab==='team'?'on':''}" data-act="tab" data-t="team">Team</button>
+        </div>
+        ${body}
+      </div>
+      <div class="panel">
+        <h2>This game</h2>
+        <p class="sub">${evts.length} awards · ${evts.reduce((a,e)=>a+e.points,0)} points</p>
+        <div class="feed">${[...evts].reverse().slice(0,40).map(e => `
+          <div class="fe"><span class="p">+${e.points}</span>
+            <span class="t">${esc(e.targetName)} — ${esc(e.goalName)}<small>${e.period==='OT'?'OT':'P'+e.period} · Shift ${e.shift}</small></span>
+            <button class="ib del" data-act="delev" data-id="${e.id}">✕</button></div>`).join('') || '<div class="empty">Tap a player, line, or team to award points</div>'}</div>
+      </div>
+    </div>`;
+  if (UI.sheet) renderSheet();
+}
+function goalButtons(type, id){
+  const g = curGame(); const scope = {player:'individual', group:'group', team:'team'}[type];
+  const goals = S.goals.filter(x => x.scope === scope);
+  if (!goals.length) return `<div class="empty">No ${scope} goals — add some in Setup</div>`;
+  return `<div class="goalbtns">${goals.map(x => {
+    const c = g.events.filter(e => e.shift === g.shift && e.goalId === x.id && e.targetType === type && (type==='team' || e.targetId === id)).length;
+    return `<button class="gb" data-act="award" data-goal="${x.id}" data-type="${type}" data-id="${id}">
+      <span class="ic">${esc(x.icon || '⭐')}</span><span class="gn">${esc(x.name)}</span><span class="gp">+${x.points}</span>
+      ${c ? `<span class="cnt">×${c} this shift</span>` : ''}</button>`;
+  }).join('')}</div>`;
+}
+function renderSheet(){
+  const {type, id} = UI.sheet; const el = $('#sheet');
+  let head;
+  if (type === 'player'){ const p = player(id); head = `<div class="jn">${esc(p.number || '')}</div><div><h3>${esc(p.name)}</h3><small>Individual goals</small></div>`; }
+  else { const gr = S.groups.find(x => x.id === id); head = `<div><h3>${esc(gr.name)}</h3><small>${gr.members.map(m => esc(pname(player(m)))).join(' · ')}</small></div>`; }
+  el.innerHTML = `<div class="s"><div class="sh">${head}<button class="btn primary" data-act="close">Done</button></div>${goalButtons(type, id)}</div>`;
+  el.classList.add('on');
+}
+function award(goalId, type, id){
+  const g = curGame(), goal = S.goals.find(x => x.id === goalId);
+  let targetName, members;
+  if (type === 'player'){ targetName = pname(player(id)); members = [id]; }
+  else if (type === 'group'){ const gr = S.groups.find(x => x.id === id); targetName = gr.name; members = [...gr.members]; }
+  else { targetName = 'Team'; members = S.players.map(p => p.id); }
+  const e = { id: uid(), ts: Date.now(), period: g.period, shift: g.shift, goalId, goalName: goal.name, points: Number(goal.points) || 0,
+              targetType: type, targetId: type === 'team' ? 'team' : id, targetName, members };
+  g.events.push(e); save(); lastEvent = e;
+  toast(`+${e.points} ${targetName} · ${goal.icon || ''} ${goal.name}`);
+  renderGame();
+  const b = document.querySelector(`.gb[data-goal="${goalId}"]`); if (b){ b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash'); }
+}
+function toast(msg){
+  $('#toastMsg').textContent = msg; $('#toast').classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('on'), 3500);
+}
+
+/* ---------------- STATS ---------------- */
+function statEvents(){
+  const games = UI.statsGame === 'all' ? S.games : S.games.filter(g => g.id === UI.statsGame);
+  return games.flatMap(g => g.events);
+}
+function table(rows, label){
+  const max = Math.max(1, ...rows.map(r => r.pts));
+  return `<table><tr><th></th><th>${label}</th><th class="barc"></th><th class="r">Pts</th></tr>${rows.map((r,i) => `
+    <tr><td class="rank">${i+1}</td><td><b>${esc(r.name)}</b><div class="breakdown">${esc(r.detail || '')}</div></td>
+    <td class="barc"><div class="barv" style="width:${r.pts/max*100}%"></div></td><td class="r"><b>${r.pts}</b></td></tr>`).join('')}</table>`;
+}
+function renderStats(){
+  if (UI.statsGame !== 'all' && !S.games.find(g => g.id === UI.statsGame)) UI.statsGame = 'all';
+  const ev = statEvents();
+  const detail = list => { const m = {}; list.forEach(e => m[e.goalName] = (m[e.goalName]||0) + 1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `${k} ×${v}`).join(', '); };
+  const pRows = S.players.map(p => {
+    const own = ev.filter(e => e.targetType === 'player' && e.targetId === p.id);
+    const shared = UI.share ? ev.filter(e => e.targetType !== 'player' && e.members.includes(p.id)) : [];
+    return { name: pname(p), pts: [...own, ...shared].reduce((a,e)=>a+e.points,0), detail: detail(own) };
+  }).sort((a,b) => b.pts - a.pts);
+  const gRows = S.groups.map(gr => { const l = ev.filter(e => e.targetType === 'group' && e.targetId === gr.id); return { name: gr.name, pts: l.reduce((a,e)=>a+e.points,0), detail: detail(l) }; }).sort((a,b) => b.pts - a.pts);
+  const team = ev.filter(e => e.targetType === 'team');
+  const goalRows = S.goals.map(x => { const l = ev.filter(e => e.goalId === x.id); return { name: `${x.icon||''} ${x.name}`, pts: l.reduce((a,e)=>a+e.points,0), detail: `${l.length} times` }; }).sort((a,b) => b.pts - a.pts);
+
+  $('#stats').innerHTML = `
+    <div class="toolbar">
+      <select data-act-change="statsgame">
+        <option value="all">All games (${S.games.length})</option>
+        ${[...S.games].reverse().map(g => `<option value="${g.id}" ${UI.statsGame===g.id?'selected':''}>${esc(g.date)} — ${esc(g.name)}${g.ended?'':' (live)'}</option>`).join('')}
+      </select>
+      <label class="ck"><input type="checkbox" data-act-change="share" ${UI.share?'checked':''}> Count line & team points toward each player</label>
+      <span style="flex:1"></span>
+      <button class="btn" data-act="csv">Export CSV</button>
+      <button class="btn" data-act="backup">Save Backup</button>
+      <button class="btn" data-act="import">Restore Backup</button>
+      ${UI.statsGame !== 'all' ? `<button class="btn" data-act="delgame">Delete Game</button>` : ''}
+    </div>
+    <div class="grid3">
+      <div class="panel"><h2>Players</h2>${pRows.length ? table(pRows, 'Player') : '<div class="empty">No players</div>'}</div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="panel"><h2>Team</h2><div class="bigstat">${team.reduce((a,e)=>a+e.points,0)}</div><div class="breakdown" style="margin-top:6px">${esc(detail(team)) || 'No team awards yet'}</div></div>
+        <div class="panel"><h2>Lines</h2>${gRows.length ? table(gRows, 'Line') : '<div class="empty">No lines</div>'}</div>
+      </div>
+      <div class="panel"><h2>Goals</h2>${table(goalRows, 'Goal')}</div>
+    </div>`;
+}
+
+/* ---------------- EXPORT / IMPORT ---------------- */
+async function giveFile(name, text, type){
+  const blob = new Blob([text], {type});
+  try {
+    const file = new File([blob], name, {type});
+    if (navigator.canShare && navigator.canShare({files:[file]})) { await navigator.share({files:[file], title:name}); return; }
+  } catch(e){ if (e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function csv(){
+  const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
+  const games = UI.statsGame === 'all' ? S.games : S.games.filter(g => g.id === UI.statsGame);
+  const rows = [['date','game','period','shift','time','who_type','who','goal','points','players']];
+  games.forEach(g => g.events.forEach(e => rows.push([g.date, g.name, e.period, e.shift, new Date(e.ts).toLocaleTimeString(), e.targetType, e.targetName, e.goalName, e.points,
+    e.members.map(id => pname(player(id))).join('; ')])));
+  return rows.map(r => r.map(q).join(',')).join('\n');
+}
+const stamp = () => new Date().toISOString().slice(0,10);
+
+/* ---------------- EVENTS ---------------- */
+const ACT = {
+  view: d => setView(d.v),
+  move: d => {
+    const arr = S[d.coll], i = arr.findIndex(x => x.id === d.id), dir = +d.dir;
+    let j = i + dir;
+    if (d.coll === 'goals') while (j >= 0 && j < arr.length && arr[j].scope !== arr[i].scope) j += dir;
+    if (j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]]; save(); renderSetup();
+  },
+  del: d => {
+    const item = S[d.coll].find(x => x.id === d.id);
+    if (!confirm(`Delete “${item.name}”? (Past awards stay in your stats.)`)) return;
+    S[d.coll] = S[d.coll].filter(x => x.id !== d.id);
+    if (d.coll === 'players') S.groups.forEach(g => g.members = g.members.filter(m => m !== d.id));
+    save(); renderSetup();
+  },
+  member: d => { const g = S.groups.find(x => x.id === d.g); g.members = g.members.includes(d.p) ? g.members.filter(m => m !== d.p) : [...g.members, d.p]; save(); renderSetup(); },
+  bulk: () => { $('#bulk').value.split('\n').map(s => s.trim()).filter(Boolean).forEach(addPlayer); save(); renderSetup(); },
+  period: d => { curGame().period = d.p; save(); renderGame(); },
+  shift: d => { const g = curGame(); g.shift = Math.max(1, g.shift + +d.d); save(); renderGame();
+                if (+d.d > 0) toast(`Shift ${g.shift}`); },
+  onice: d => { UI.onIce = d.id || null; renderGame(); },
+  tab: d => { UI.tab = d.t; renderGame(); },
+  open: d => { UI.sheet = {type: d.type, id: d.id}; renderSheet(); },
+  close: () => { UI.sheet = null; $('#sheet').classList.remove('on'); },
+  award: d => award(d.goal, d.type, d.id),
+  undo: () => {
+    if (!lastEvent) return;
+    S.games.forEach(g => g.events = g.events.filter(e => e.id !== lastEvent.id));
+    lastEvent = null; save(); $('#toast').classList.remove('on'); render();
+  },
+  delev: d => { const g = curGame(); g.events = g.events.filter(e => e.id !== d.id); save(); renderGame(); },
+  endgame: () => { const g = curGame(); if (!confirm('End this game? You can still see it in Stats.')) return;
+    g.ended = true; S.currentGameId = null; UI.statsGame = g.id; save(); setView('stats'); },
+  csv: () => giveFile(`shift-points-${stamp()}.csv`, csv(), 'text/csv'),
+  backup: () => giveFile(`shift-points-backup-${stamp()}.json`, JSON.stringify(S, null, 2), 'application/json'),
+  import: () => $('#importFile').click(),
+  delgame: () => { const g = S.games.find(x => x.id === UI.statsGame); if (!confirm(`Delete game “${g.name}” and all its points?`)) return;
+    S.games = S.games.filter(x => x !== g); if (S.currentGameId === g.id) S.currentGameId = null; UI.statsGame = 'all'; save(); renderStats(); },
+};
+function addPlayer(raw){
+  const m = raw.match(/^#?(\d+)\s+(.+)$/);
+  S.players.push({ id: uid(), number: m ? m[1] : '', name: m ? m[2] : raw });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (b) { ACT[b.dataset.act](b.dataset, b); return; }
+  if (e.target.id === 'sheet') ACT.close();
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.dataset.edit){
+    const [coll, id, field] = el.dataset.edit.split(':');
+    const item = S[coll].find(x => x.id === id); if (!item) return;
+    item[field] = field === 'points' ? (Number(el.value) || 0) : el.value.trim();
+    save(); if (field === 'scope') renderSetup();
+  }
+  if (el.dataset.actChange === 'statsgame'){ UI.statsGame = el.value; renderStats(); }
+  if (el.dataset.actChange === 'share'){ UI.share = el.checked; renderStats(); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.edit) e.target.blur();
+  if (e.key === 'Escape' && UI.sheet) ACT.close();
+});
+document.addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target, kind = f.dataset.form, v = n => (f.elements[n]?.value || '').trim();
+  if (kind === 'player' && v('n')) addPlayer(v('n'));
+  else if (kind === 'group' && v('n')) S.groups.push({ id: uid(), name: v('n'), members: [] });
+  else if (kind === 'goal' && v('n')) S.goals.push({ id: uid(), name: v('n'), scope: v('s'), points: Number(v('p')) || 1, icon: v('i') || '⭐' });
+  else if (kind === 'game'){
+    const g = { id: uid(), name: v('o') || 'Game', date: v('d'), period: '1', shift: 1, events: [], ended: false };
+    S.games.push(g); S.currentGameId = g.id; UI.onIce = null; save(); renderGame(); return;
+  } else return;
+  save(); renderSetup();
+  const nf = document.querySelector(`form[data-form="${kind}"] input[name="n"]`); if (nf) nf.focus();
+});
+$('#importFile').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try { const d = JSON.parse(r.result); if (!d.players || !d.goals) throw new Error('Not a Shift Points backup');
+      if (!confirm('Replace everything on this device with this backup?')) return;
+      S = d; save(); UI.statsGame = 'all'; render(); toast('Backup restored');
+    } catch(err){ alert('Could not read file: ' + err.message); }
+    e.target.value = '';
+  };
+  r.readAsText(file);
+});
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+setView(UI.view);
+</script>
+</body>
+</html>
