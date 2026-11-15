@@ -184,8 +184,31 @@ label.ck{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px
 .gpick .gn{font-weight:900;font-size:17px;line-height:1.15;padding-right:34px}
 .gpick .gs{font-size:12px;color:var(--dim);font-weight:700;margin-top:auto}
 .gpick .gc{position:absolute;top:12px;right:14px;font-size:26px;font-weight:900;font-variant-numeric:tabular-nums}
-.gpick.on{background:var(--fg);color:var(--ink);border-color:var(--fg)}
-.gpick.on .gs{color:#444}
+.gpick:active{background:var(--fg);color:var(--ink)}
+.gpick .gtap{font-size:12px;font-weight:800;color:var(--dim)}
+.gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;align-content:start}
+.gcol{display:flex;flex-direction:column;gap:8px}
+.gcol .gpick{min-height:150px;padding:18px}
+.gcol .gpick .ic{font-size:36px}
+.gcol .gpick .gn{font-size:20px}
+.gcol .gpick .gc{font-size:34px}
+.gtally{display:flex;flex-wrap:wrap;gap:6px;padding:0 4px}
+.gtally span{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:13px;color:var(--dim)}
+.gtally span b{color:var(--fg)}
+.gtally .none{border-style:dashed}
+#sheet .pickm{display:flex;flex-direction:column;gap:6px;padding-bottom:0;max-width:1000px}
+.pb.pick{position:relative}
+.pb.pick .pc{font-size:13px;font-weight:800;color:var(--dim)}
+.pb.pick .chk{position:absolute;top:-7px;right:-6px;width:24px;height:24px;border-radius:50%;background:var(--fg);color:var(--ink);font-size:14px;font-weight:900;display:none;align-items:center;justify-content:center;border:2px solid #000}
+.pb.pick.on{background:var(--fg);color:var(--ink);border-color:var(--fg)}
+.pb.pick.on .pn small,.pb.pick.on .pc{color:#444}
+.pb.pick.on .chk{display:flex}
+button.tlabel{border:0;background:none;text-align:left;color:var(--fg);font-weight:900;font-size:15px;padding:10px 0 0;cursor:pointer}
+.tlabel small{display:block;color:var(--dimmer);font-size:11px;font-weight:700;margin-top:2px}
+.pickfoot{position:sticky;bottom:0;display:flex;gap:10px;padding:14px 0 calc(16px + env(safe-area-inset-bottom));margin-top:8px;background:linear-gradient(transparent,var(--panel) 30%)}
+.pickfoot .btn{padding:16px 22px;font-size:17px}
+.pickfoot .primary{flex:1}
+.pickfoot .primary:disabled{opacity:.35}
 .thead{color:var(--dim);font-size:14px;margin-bottom:10px}
 .thead b{color:var(--fg)}
 .trow{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line);align-items:start}
@@ -252,6 +275,12 @@ header nav{margin-left:0}
   .gstrip{grid-template-columns:repeat(2,1fr);gap:8px}
   .gpick{min-height:92px;padding:12px}
   .gpick .gn{font-size:15px}
+  .gcards{grid-template-columns:1fr 1fr;gap:10px}
+  .gcol .gpick{min-height:120px;padding:12px}
+  .gcol .gpick .ic{font-size:28px}
+  .gcol .gpick .gn{font-size:16px}
+  .gcol .gpick .gc{font-size:26px}
+  .trow button.tlabel{padding:4px 0}
   .trow{grid-template-columns:1fr;gap:4px}
   .tlabel{padding:0}
   .lplayers.wide{grid-template-columns:1fr}
@@ -374,7 +403,7 @@ function commit(op){
 }
 
 let UI = { view: localStorage.getItem('shiftpoints.view') || 'game', gameId: localStorage.getItem('shiftpoints.game') || null,
-           mode: 'prep', stGame: 'all', stGoal: 'all', stLevel: 'player', stCols: 'goals', liveGoal: null, share: false, sheet: null, newScope: 'individual', potgGame: null, tracker: 'potg', trSort: 'roster' };
+           mode: 'prep', stGame: 'all', stGoal: 'all', stLevel: 'player', stCols: 'goals', share: false, sheet: null, newScope: 'individual', potgGame: null, tracker: 'potg', trSort: 'roster' };
 if (!VIEWS.includes(UI.view)) UI.view = 'game';
 let lastUndo = null, toastTimer = null, pendingRender = false;
 
@@ -563,46 +592,24 @@ function renderPrep(g){
     <div style="margin-top:24px;text-align:center"><button class="btn" data-act="delgame" data-id="${g.id}" style="color:var(--dim)">Delete this game</button></div>`;
 }
 
-/* ---------------- GAME: LIVE (goal first: pick a goal, then tap who earned it) ---------------- */
+/* ---------------- GAME: LIVE (tap a goal -> pick who earned it -> Apply) ---------------- */
 const SCOPE_SHORT = { individual: 'Player', group: 'Line', team: 'Team' };
 const weight = e => { const x = S.goals.find(g => g.id === e.goalId); return x ? (Number(x.points) || 0) : (e.points || 0); };
+const tallyOf = (evts, goalId) => Object.values(evts.filter(e => e.goalId === goalId).reduce((m, e) => {
+  const k = e.targetType + e.targetId; (m[k] = m[k] || { name: e.targetName, n: 0 }).n++; return m; }, {})).sort((a, b) => b.n - a.n);
 function renderLive(g){
-  const evts = g.events, present = new Set(gPresent(g)), ids = new Set(gGoalIds(g));
+  const evts = g.events, ids = new Set(gGoalIds(g));
   const goals = S.goals.filter(x => ids.has(x.id));
-  if (!goals.find(x => x.id === UI.liveGoal)) UI.liveGoal = goals[0] ? goals[0].id : null;
-  const goal = goals.find(x => x.id === UI.liveGoal);
-  const cnt = (type, id) => evts.filter(e => e.goalId === goal.id && e.targetType === type && (type === 'team' || e.targetId === id)).length;
-
-  const strip = goals.map(x => {
-    const n = evts.filter(e => e.goalId === x.id).length;
-    return `<button class="gpick ${x.id === UI.liveGoal ? 'on' : ''}" data-act="lgoal" data-id="${x.id}">
-      <span class="ic">${esc(x.icon || '⭐')}</span><span class="gn">${esc(x.name)}</span>
-      <span class="gs">${SCOPE_SHORT[x.scope]} · ${x.points} pt${x.points == 1 ? '' : 's'}</span><span class="gc">${n}</span></button>`;
+  const cards = goals.map(x => {
+    const n = evts.filter(e => e.goalId === x.id).length, t = tallyOf(evts, x.id);
+    return `<div class="gcol">
+      <button class="gpick" data-act="lgoal" data-id="${x.id}">
+        <span class="ic">${esc(x.icon || '⭐')}</span><span class="gn">${esc(x.name)}</span>
+        <span class="gs">${SCOPE_SHORT[x.scope]} · ${x.points} pt${x.points == 1 ? '' : 's'}</span><span class="gc">${n}</span>
+        <span class="gtap">Tap to give ›</span></button>
+      <div class="gtally">${t.map(r => `<span><b>${esc(r.name)}</b>${r.n > 1 ? ' ×' + r.n : ''}</span>`).join('') || '<span class="none">Nobody yet</span>'}</div>
+    </div>`;
   }).join('');
-
-  let targets = '';
-  if (!goal) targets = '<div class="empty">No goals for this game. Pick some under ‹ Lineup.</div>';
-  else if (goal.scope === 'individual'){
-    const tile = p => { const n = cnt('player', p.id);
-      return `<button class="pb ${n ? 'has' : ''}" data-act="give" data-type="player" data-id="${p.id}"><span class="pn">${p.number ? `<small>#${esc(p.number)}</small>` : ''}${esc(p.name)}</span><span class="pp">${n || ''}</span></button>`; };
-    const lines = gLines(g), inLine = new Set(lines.flatMap(l => l.members));
-    targets = lines.map(l => { const ps = l.members.filter(m => present.has(m)).map(player).filter(Boolean);
-      return ps.length ? `<div class="trow"><div class="tlabel">${esc(l.name)}</div><div class="lplayers">${ps.map(tile).join('')}</div></div>` : ''; }).join('');
-    const others = S.players.filter(p => present.has(p.id) && !inLine.has(p.id));
-    if (others.length) targets += `<div class="trow"><div class="tlabel">Other</div><div class="lplayers">${others.map(tile).join('')}</div></div>`;
-    if (!targets) targets = '<div class="empty">Nobody is marked as here. Tap ‹ Lineup.</div>';
-  } else if (goal.scope === 'group'){
-    targets = `<div class="lplayers wide">${gLines(g).map(l => { const n = cnt('group', l.id);
-      const names = l.members.filter(m => present.has(m)).map(m => esc((player(m) || {}).name || '')).join(' · ');
-      return `<button class="pb tall ${n ? 'has' : ''}" data-act="give" data-type="group" data-id="${l.id}"><span class="pn">${esc(l.name)}<small>${names || 'Nobody here'}</small></span><span class="pp">${n || ''}</span></button>`; }).join('')}</div>`;
-  } else {
-    const n = cnt('team');
-    targets = `<button class="pb team ${n ? 'has' : ''}" data-act="give" data-type="team" data-id="team"><span class="pn">Whole Team<small>Tap each time the team does it</small></span><span class="pp">${n || ''}</span></button>`;
-  }
-
-  const tally = goal ? Object.values(evts.filter(e => e.goalId === goal.id).reduce((m, e) => {
-    const k = e.targetType + e.targetId; (m[k] = m[k] || { name: e.targetName, n: 0 }).n++; return m; }, {})).sort((a, b) => b.n - a.n) : [];
-
   $('#game').innerHTML = `
     <div class="bar">
       <button class="btn" data-act="prep">‹ Lineup</button>
@@ -610,26 +617,60 @@ function renderLive(g){
       <div class="seg">${PERIODS.map(p => `<button class="${g.period===p?'on':''}" data-act="period" data-p="${p}">${p==='OT'?'OT':'P'+p}</button>`).join('')}</div>
       <button class="btn" data-act="endgame" style="height:56px">End Game</button>
     </div>
-    <div class="gstrip">${strip}</div>
     <div class="gamegrid">
-      <div>${goal ? `<div class="thead">${esc(goal.icon || '⭐')} <b>${esc(goal.name)}</b> — tap ${goal.scope === 'individual' ? 'each player' : goal.scope === 'group' ? 'each line' : 'the team'} who did it</div>` : ''}${targets}</div>
+      <div class="gcards">${cards || '<div class="empty">No goals for this game. Pick some under ‹ Lineup.</div>'}</div>
       <div class="panel">
-        ${goal ? `<h2>${esc(goal.icon || '')} ${esc(goal.name)}</h2>
-        <p class="sub">${tally.reduce((a, t) => a + t.n, 0)} this game · ${goal.points} pt${goal.points == 1 ? '' : 's'} each</p>
-        <div class="list" style="margin:0 0 18px">${tally.map(t => `<div class="fe"><span class="t"><b>${esc(t.name)}</b></span><span class="p">×${t.n}</span></div>`).join('') || '<div class="empty">Nobody yet</div>'}</div>` : ''}
         <h2>Recent</h2>
-        <div class="feed" style="margin-top:8px">${[...evts].sort((a,b) => b.ts - a.ts).slice(0, 15).map(e => `
+        <p class="sub">${evts.length} tallies · ${evts.reduce((a, e) => a + weight(e), 0)} points</p>
+        <div class="feed">${[...evts].sort((a,b) => b.ts - a.ts).slice(0, 25).map(e => `
           <div class="fe"><span class="t">${esc(e.targetName)} — ${esc(e.goalName)}<small>${e.period==='OT'?'OT':'P'+e.period} · ${new Date(e.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}${e.coach ? ' · ' + esc(e.coach) : ''}</small></span>
-            <button class="ib del" data-act="delev" data-id="${e.id}">✕</button></div>`).join('') || '<div class="empty">Nothing yet</div>'}</div>
+            <button class="ib del" data-act="delev" data-id="${e.id}">✕</button></div>`).join('') || '<div class="empty">Tap a goal to give it out</div>'}</div>
       </div>
     </div>`;
 }
-function renderSheet(){ // only used for sync settings now
-  const el = $('#sheet');
-  el.innerHTML = `<div class="s"><div class="sh"><div><h3>Team Sync</h3><small>Share data with other coaches through a Google Sheet</small></div><button class="btn primary" data-act="close">Done</button></div>${syncForm()}</div>`;
+// The popup: every eligible target as a toggle, then Apply.
+function pickerBody(g, goal){
+  const present = new Set(gPresent(g)), sel = UI.sheet.sel, evts = g.events;
+  const cnt = (type, id) => evts.filter(e => e.goalId === goal.id && e.targetType === type && (type === 'team' || e.targetId === id)).length;
+  const tile = (type, id, label, sub) => { const n = cnt(type, id);
+    return `<button class="pb pick ${sel.has(id) ? 'on' : ''}" data-act="tog" data-type="${type}" data-id="${id}">
+      <span class="pn">${label}${sub ? `<small>${sub}</small>` : ''}</span><span class="pc">${n ? '×' + n : ''}</span><span class="chk">✓</span></button>`; };
+  if (goal.scope === 'individual'){
+    const lines = gLines(g), inLine = new Set(lines.flatMap(l => l.members));
+    let out = lines.map(l => { const ps = l.members.filter(m => present.has(m)).map(player).filter(Boolean);
+      return ps.length ? `<div class="trow"><button class="tlabel" data-act="selline" data-id="${l.id}">${esc(l.name)}<small>select all</small></button>
+        <div class="lplayers">${ps.map(p => tile('player', p.id, esc(p.name), p.number ? '#' + esc(p.number) : '')).join('')}</div></div>` : ''; }).join('');
+    const others = S.players.filter(p => present.has(p.id) && !inLine.has(p.id));
+    if (others.length) out += `<div class="trow"><div class="tlabel">Other</div><div class="lplayers">${others.map(p => tile('player', p.id, esc(p.name))).join('')}</div></div>`;
+    return out || '<div class="empty">Nobody is marked as here. Tap ‹ Lineup.</div>';
+  }
+  if (goal.scope === 'group') return `<div class="lplayers wide">${gLines(g).map(l => tile('group', l.id, esc(l.name),
+      l.members.filter(m => present.has(m)).map(m => esc((player(m) || {}).name || '')).join(' · ') || 'Nobody here')).join('')}</div>`;
+  return `<div class="lplayers wide">${tile('team', 'team', 'Whole Team', 'Everyone here')}</div>`;
+}
+function renderSheet(){
+  const el = $('#sheet'), sh = UI.sheet;
+  if (sh.type === 'pick'){
+    const g = game(), goal = g && S.goals.find(x => x.id === sh.goalId);
+    if (!g || !goal || UI.view !== 'game' || UI.mode !== 'live') return ACT.close();
+    el.innerHTML = `<div class="s pickm">
+      <div class="sh"><span class="ic" style="font-size:36px">${esc(goal.icon || '⭐')}</span><div><h3>${esc(goal.name)}</h3><small>Who earned it? ${SCOPE_SHORT[goal.scope]} goal · ${goal.points} pt${goal.points == 1 ? '' : 's'} each</small></div>
+        <button class="btn" data-act="close" style="margin-left:auto">Cancel</button></div>
+      ${pickerBody(g, goal)}
+      <div class="pickfoot"><button class="btn" data-act="selclear">Clear</button><button class="btn primary" id="applyBtn" data-act="apply"></button></div>
+    </div>`;
+    updateApply();
+  } else {
+    el.innerHTML = `<div class="s"><div class="sh"><div><h3>Team Sync</h3><small>Share data with other coaches through a Google Sheet</small></div><button class="btn primary" data-act="close">Done</button></div>${syncForm()}</div>`;
+  }
   el.classList.add('on');
 }
-function award(goalId, type, id, btn){
+function updateApply(){
+  const b = $('#applyBtn'), n = UI.sheet.sel.size;
+  b.textContent = n ? `Apply to ${n}` : 'Pick who earned it'; b.disabled = !n;
+  document.querySelectorAll('#sheet [data-act="tog"]').forEach(t => t.classList.toggle('on', UI.sheet.sel.has(t.dataset.id)));
+}
+function award(goalId, type, id){
   const g = game(), goal = S.goals.find(x => x.id === goalId);
   let targetName, members;
   if (type === 'player'){ targetName = pname(player(id)); members = [id]; }
@@ -637,11 +678,8 @@ function award(goalId, type, id, btn){
   else { targetName = 'Team'; members = gPresent(g).slice(); }
   const e = { id: uid(), ts: Date.now(), period: g.period || '1', goalId, goalName: goal.name, points: Number(goal.points) || 0,
               targetType: type, targetId: type === 'team' ? 'team' : id, targetName, members, coach: SY.coach || '' };
-  commit({ t:'ev', g:g.id, v:e }); lastUndo = { t:'evdel', id:e.id };
-  toast(`${goal.icon || ''} ${goal.name} → ${targetName}`, true);
-  render();
-  const b = document.querySelector(`[data-act="give"][data-type="${type}"][data-id="${id}"]`);
-  if (b){ b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash'); }
+  commit({ t:'ev', g:g.id, v:e });
+  return e;
 }
 function toast(msg, undo){
   $('#toastMsg').textContent = msg; $('#toast').classList.add('on');
@@ -911,11 +949,22 @@ const ACT = {
   endgame: () => { const g = game(); if (!confirm('End this game? You can reopen it later.')) return;
     setGame(g, { ended:true }); UI.potgGame = g.id; UI.tracker = 'potg'; UI.mode = 'prep'; setView('potg'); toast('Game over. Pick the Player of the Game!'); },
   close: () => { UI.sheet = null; $('#sheet').classList.remove('on'); },
-  lgoal: d => { UI.liveGoal = d.id; render(); },
-  give: (d, b) => award(UI.liveGoal, d.type, d.id, b),
+  lgoal: d => { const g = S.goals.find(x => x.id === d.id); UI.sheet = { type:'pick', goalId:d.id, sel:new Set(g && g.scope === 'team' ? ['team'] : []) }; renderSheet(); },
+  tog: d => { const s = UI.sheet.sel; s.has(d.id) ? s.delete(d.id) : s.add(d.id); updateApply(); },
+  selline: d => { const g = game(), l = gLines(g).find(x => x.id === d.id), here = gPresent(g).filter(m => l.members.includes(m));
+    const s = UI.sheet.sel, all = here.every(m => s.has(m)); here.forEach(m => all ? s.delete(m) : s.add(m)); updateApply(); },
+  selclear: () => { UI.sheet.sel.clear(); updateApply(); },
+  apply: () => {
+    const { goalId, sel } = UI.sheet, goal = S.goals.find(x => x.id === goalId);
+    const type = { individual:'player', group:'group', team:'team' }[goal.scope];
+    const evs = [...sel].map(id => award(goalId, type, id));
+    lastUndo = evs.map(e => ({ t:'evdel', id:e.id }));
+    ACT.close(); render();
+    toast(`${goal.icon || ''} ${goal.name} → ${evs.map(e => e.targetName).join(', ')}`, true);
+  },
   stlevel: d => { UI.stLevel = d.v; render(); },
   stcols: d => { UI.stCols = d.v; render(); },
-  undo: () => { if (!lastUndo) return; commit(lastUndo); lastUndo = null; $('#toast').classList.remove('on'); render(); },
+  undo: () => { if (!lastUndo) return; [].concat(lastUndo).forEach(op => commit(Object.assign({}, op))); lastUndo = null; $('#toast').classList.remove('on'); render(); },
   delev: d => { commit({ t:'evdel', id:d.id }); render(); },
 
   // POTG

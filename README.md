@@ -6,7 +6,7 @@ An offline web app for youth hockey coaches. Coaches award points when kids hit 
 
 ## Tabs
 
-- **Game**: create a game, then set its lineup: who's here, that game's lines, and the 3–5 goals in play. Tap **Go Live**, pick a goal at the top, and tap each player, line or team that earned it.
+- **Game**: create a game, then set its lineup: who's here, that game's lines, and the 3–5 goals in play. Tap **Go Live**, tap a goal, pick everyone who earned it (tap a line name to select the whole line), then **Apply**.
 - **Roster**: the team's players and the default lines that new games start from.
 - **Goals**: the full list of goals.
 - **Stats**: a grid you can switch between Players, Lines and Team, with columns by goal or by game. Overall score = tallies × each goal's points. Changing a goal's points re-scores every game.
