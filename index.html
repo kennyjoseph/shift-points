@@ -262,6 +262,8 @@ header nav{margin-left:0}
 .syncf label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--dim);font-weight:700}
 .syncf input{font-size:16px}
 .joinbox{margin-bottom:16px;border-color:var(--fg)}
+.whos{display:flex;flex-wrap:wrap;gap:8px}
+.whos .btn{padding:14px 20px;font-size:17px}
 .item.locked{opacity:.85}
 .lockpts{font-weight:800;font-size:13px;color:var(--dim);padding:0 6px}
 .owner{font-size:11px;color:var(--dimmer);font-weight:600}
@@ -359,7 +361,7 @@ header nav{margin-left:0}
 <script src="ops.js"></script>
 <script>
 const KEY = 'shiftpoints.v1';
-const APP_VERSION = '13';
+const APP_VERSION = '14';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = s => document.querySelector(s);
@@ -496,17 +498,40 @@ function renderRoster(){
 }
 
 /* ---------------- GOALS ---------------- */
-/* Goal ownership: a goal records the device (and coach name) that added it. Only that device can change or
-   delete it. Goals from before ownership existed belong to the head coach = the first device to join the Sheet. */
-const goalOwner = g => g.by || SY.headDevice || null;
+/* Goal ownership is by coach NAME (the "Who are you?" pick), so a coach can edit their goals from any device.
+   Goals from before names were recorded get stamped with the head coach's name (the first device to join). */
+const sameName = (a, b) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 function canEditGoal(g){
-  if (!SY.url) return !g.by || g.by === SY.device;        // not on a team: your own device, your goals
-  const o = goalOwner(g); return !!o && o === SY.device;   // on a team: owner only (locked until owner is known)
+  if (!SY.url) return true;                                       // not on a team: it's all yours
+  if (g.byName) return sameName(g.byName, SY.coach);
+  return !!SY.headDevice && SY.headDevice === SY.device;          // unstamped old goal: head coach's device only
 }
 function ownerLabel(g){
-  const o = goalOwner(g);
-  const who = o && o === SY.device ? 'you' : (g.byName || (g.by ? 'another coach' : 'the head coach'));
+  const who = g.byName ? (sameName(g.byName, SY.coach) ? 'you' : g.byName) : 'the head coach';
   return `Added by ${esc(who)}${g.at ? ' · ' + esc(new Date(g.at).toLocaleDateString([], {month:'short', day:'numeric'})) : ''}`;
+}
+// Every coach name the team has used: the coach list plus names on goals and tallies.
+function coachNames(){
+  const all = [...(S.coaches || []).map(c => c.name), ...S.goals.map(g => g.byName), ...S.games.flatMap(g => g.events.map(e => e.coach))];
+  const out = []; all.forEach(n => { if (n && n.trim() && !out.some(x => sameName(x, n))) out.push(n.trim()); });
+  return out.sort((a, b) => a.localeCompare(b));
+}
+function registerCoach(name){
+  if (!name || !SY.url || (S.coaches || []).some(c => sameName(c.name, name))) return;
+  commit({ t:'upsert', c:'coaches', v:{ id: 'c_' + name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: name.trim() } });
+}
+// One-time on the head coach's device: put the head coach's name on goals made before names were recorded.
+function stampOldGoals(){
+  if (!SY.url || !SY.coach || SY.headDevice !== SY.device) return;
+  S.goals.filter(g => !g.byName).forEach(g => commit({ t:'upsert', c:'goals', v:Object.assign(clone(g), { byName: SY.coach }) }));
+}
+function whoBody(){
+  const names = coachNames();
+  return `<div class="syncf">
+    <p class="sub" style="margin:0">Pick your name. On a new phone or iPad, pick the same name to keep editing your goals.</p>
+    <div class="whos">${names.map(n => `<button class="btn ${sameName(n, SY.coach) ? 'primary' : ''}" data-act="iam" data-n="${esc(n)}">${esc(n)}</button>`).join('') || '<span class="breakdown">No coaches yet. Add your name below.</span>'}</div>
+    <form data-form="iam" class="row"><input class="grow" name="n" placeholder="New coach name, e.g. Coach Kenny" autocomplete="off" style="font-size:17px;padding:14px"><button class="btn primary" style="padding:14px 20px">I'm new</button></form>
+  </div>`;
 }
 function goalRow(g){
   const scopeSel = `<select data-edit="goals:${g.id}:scope" style="flex:1;padding:6px 8px;font-size:13px" title="Who earns it">${SCOPES.map(([v,l]) => `<option value="${v}" ${v===g.scope?'selected':''}>${l}</option>`).join('')}</select>`;
@@ -712,6 +737,8 @@ function renderSheet(){
       <div class="pickfoot"><button class="btn" data-act="selclear">Clear</button><button class="btn primary" id="applyBtn" data-act="apply"></button></div>
     </div>`;
     updateApply();
+  } else if (sh.type === 'who'){
+    el.innerHTML = `<div class="s"><div class="sh"><div><h3>Who are you?</h3><small>Your name goes on goals you add and tallies you give</small></div>${SY.coach ? '<button class="btn" data-act="close">Cancel</button>' : ''}</div>${whoBody()}</div>`;
   } else {
     el.innerHTML = `<div class="s"><div class="sh"><div><h3>Team Sync</h3><small>Share data with other coaches through a Google Sheet</small></div><button class="btn primary" data-act="close">Done</button></div>${syncForm()}</div>`;
   }
@@ -880,7 +907,7 @@ function syncForm(){
     <p class="sub" style="margin:0">${st}</p>
     ${TEAM_SHEET_URL ? '' : urlField}
     <label>Team code<input id="syCode" value="${esc(SY.code)}" placeholder="Ask your head coach" autocomplete="off" autocapitalize="off"></label>
-    <label>Your name (shows on tallies you give)<input id="syCoach" value="${esc(SY.coach)}" placeholder="Coach Kenny"></label>
+    ${SY.url ? `<div class="row" style="justify-content:space-between"><span>You are <b>${esc(SY.coach || 'not picked yet')}</b></span><button class="btn" data-act="who">${SY.coach ? 'Switch' : 'Pick your name'}</button></div>` : ''}
     <div class="row" style="flex-wrap:wrap">
       ${SY.url ? `<button class="btn primary" data-act="syncsave">Save</button><button class="btn" data-act="syncnow">Sync now</button><button class="btn" data-act="invite">Invite a coach</button><button class="btn" data-act="syncoff">Disconnect</button>`
                : `<button class="btn primary" data-act="syncconnect">Connect</button>`}
@@ -892,10 +919,9 @@ function syncForm(){
 function joinBox(){ // shown on the Game tab until this device joins the team
   if (!TEAM_SHEET_URL || SY.url) return '';
   return `<div class="panel joinbox">
-    <h2>Join your team</h2><p class="sub">Enter the team code to share games and tallies with the other coaches. You only do this once.</p>
+    <h2>Join your team</h2><p class="sub">Enter the team code to share games and tallies with the other coaches. Next you'll pick your name.</p>
     <div class="row" style="flex-wrap:wrap">
       <input id="joinCode" class="grow" placeholder="Team code" autocomplete="off" autocapitalize="off" style="font-size:17px;padding:14px">
-      <input id="joinName" class="grow" placeholder="Your name" style="font-size:17px;padding:14px">
       <button class="btn primary" data-act="join" style="padding:14px 24px">Join</button>
     </div>
   </div>`;
@@ -925,7 +951,7 @@ async function ensureHead(){
   if (!SY.url || SY.headDevice || headLookup || !navigator.onLine) return;
   headLookup = true;
   try { const res = await post({ code:SY.code, device:SY.device, coach:SY.coach, since:0, ops:[] });
-    if (res.ops.length){ SY.headDevice = res.ops[0].device; saveSync(); if (UI.view === 'goals') refresh(); } }
+    if (res.ops.length){ SY.headDevice = res.ops[0].device; saveSync(); stampOldGoals(); if (UI.view === 'goals') refresh(); } }
   catch(e){} finally { headLookup = false; }
 }
 function scheduleSync(ms){ clearTimeout(syncTimer); syncTimer = setTimeout(sync, ms ?? 2000); }
@@ -937,7 +963,7 @@ async function sync(){
   try {
     const res = await post({ code:SY.code, device:SY.device, coach:SY.coach, since:SY.since, ops:sending });
     if (takeResponse(res, sending.length)) scheduleTabs();
-    if (!SY.headDevice) ensureHead();
+    if (!SY.headDevice) ensureHead(); else stampOldGoals();
   } catch(e){ SYS.err = e.message; }
   SYS.busy = false; updateSyncDot();
   if (UI.sheet && UI.sheet.type === 'sync') renderSheet();
@@ -962,7 +988,7 @@ async function connect(url, code, coach){
     SY.tabHashes = {}; saveSync();
   } catch(e){ SY.url = ''; saveSync(); alert('Could not connect: ' + e.message); }
   finally { SYS.busy = false; SYS.err = ''; updateSyncDot(); if (UI.sheet && UI.sheet.type === 'sync') ACT.close(); render(); }
-  if (SY.url){ sync(); scheduleTabs(true); }
+  if (SY.url){ sync(); scheduleTabs(true); if (!SY.coach) ACT.who(); else { registerCoach(SY.coach); stampOldGoals(); } }
 }
 
 /* Summary tabs for the Sheet. Built here (not in the Sheet's script) so changes ship with app updates.
@@ -1166,14 +1192,16 @@ const ACT = {
 
   // sync + files
   syncsettings: () => { UI.sheet = { type:'sync' }; renderSheet(); },
-  syncconnect: () => connect(pickUrl($('#syUrl') && $('#syUrl').value), $('#syCode').value, $('#syCoach').value),
-  join: () => connect(TEAM_SHEET_URL, $('#joinCode').value, $('#joinName').value),
+  syncconnect: () => connect(pickUrl($('#syUrl') && $('#syUrl').value), $('#syCode').value, SY.coach),
+  join: () => connect(TEAM_SHEET_URL, $('#joinCode').value, SY.coach),
+  who: () => { UI.sheet = { type:'who' }; renderSheet(); },
+  iam: d => { SY.coach = d.n; saveSync(); registerCoach(d.n); stampOldGoals(); ACT.close(); render(); toast(`Hi, ${d.n}!`); },
   invite: async () => {
     const link = inviteLink(), text = `Join the team in Shift Points: ${link}\n\nOpen it, then Share → Add to Home Screen. If it asks, the team code is ${SY.code}.`;
     try { if (navigator.share){ await navigator.share({ title:'Shift Points', text }); return; } } catch(e){ if (e.name === 'AbortError') return; }
     try { await navigator.clipboard.writeText(text); toast('Invite copied. Paste it in a text.'); } catch(e){ prompt('Copy this invite:', text); }
   },
-  syncsave: () => { SY.coach = $('#syCoach').value.trim(); SY.code = $('#syCode').value.trim(); const u = $('#syUrl'); if (u && okUrl(pickUrl(u.value))) SY.url = pickUrl(u.value); saveSync(); ACT.close(); sync(); },
+  syncsave: () => { SY.code = $('#syCode').value.trim(); const u = $('#syUrl'); if (u && okUrl(pickUrl(u.value))) SY.url = pickUrl(u.value); saveSync(); ACT.close(); sync(); },
   syncnow: () => { SYS.err = ''; sync(); },
   syncoff: () => {
     if (OUT.length && !confirm(`${OUT.length} change(s) haven't reached the Sheet yet and won't be sent. Disconnect anyway?`)) return;
@@ -1221,7 +1249,11 @@ document.addEventListener('submit', e => {
   const f = e.target, kind = f.dataset.form, v = n => (f.elements[n]?.value || '').trim();
   if (kind === 'player' && v('n')) addPlayer(v('n'));
   else if (kind === 'group' && v('n')) commit({ t:'upsert', c:'groups', v:{ id: uid(), name: v('n'), members: [] } });
-  else if (kind === 'goal' && v('n')) commit({ t:'upsert', c:'goals', v:{ id: uid(), name: v('n'), scope: v('s'), points: Number(v('p')) || 1, icon: v('i') || '⭐', by: SY.device, byName: SY.coach || '', at: Date.now() } });
+  else if (kind === 'goal' && v('n')) {
+    commit({ t:'upsert', c:'goals', v:{ id: uid(), name: v('n'), scope: v('s'), points: Number(v('p')) || 1, icon: v('i') || '⭐', by: SY.device, byName: SY.coach || '', at: Date.now() } });
+    if (!SY.coach && SY.url) setTimeout(() => ACT.who(), 300);
+  }
+  else if (kind === 'iam' && v('n')) { ACT.iam({ n: v('n') }); return; }
   else if (kind === 'gline' && v('n')) { const n = v('n'); linesOp(game(), ls => ls.push({ id: uid(), name: n, members: [] })); }
   else if (kind === 'newgame'){
     const prev = [...S.games].sort((a,b) => (a.date||'').localeCompare(b.date||'')).pop();
@@ -1249,7 +1281,8 @@ $('#importFile').addEventListener('change', e => {
 });
 
 setInterval(() => sync(), 30000);
-setTimeout(() => scheduleTabs(), 5000); // also pushes new tab layouts after an app update
+setTimeout(() => scheduleTabs(), 5000);
+setTimeout(() => { if (!SY.url) return; if (!SY.coach) ACT.who(); else registerCoach(SY.coach); }, 1500); // also pushes new tab layouts after an app update
 addEventListener('online', () => { SYS.err = ''; sync(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(); });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});

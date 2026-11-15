@@ -4,7 +4,7 @@
 // Sheet's order ends up with the same data.
 //
 // Op shapes:
-//   {t:'upsert', c:'players'|'groups'|'goals'|'trackers', v:item}   add or replace an item
+//   {t:'upsert', c:'players'|'groups'|'goals'|'trackers'|'coaches', v:item}   add or replace an item
 //   {t:'del',    c:'players'|'groups'|'goals'|'trackers', id}  delete an item
 //   {t:'order',  c:'players'|'groups'|'goals', ids:[...]} reorder a list
 //   {t:'game',    v:{id,name,date,period,ended,present,lines,goalIds}}  add or update a game + its lineup
@@ -17,10 +17,10 @@
 // Trackers are things counted across games ("Player of the Game", "Started the game").
 // The two defaults have fixed ids so every device agrees on them.
 const DEFAULT_TRACKERS = [{ id: 'potg', name: 'Player of the Game', icon: '★' }, { id: 'start', name: 'Started the Game', icon: '🥅' }];
-function blankState(){ return { players: [], groups: [], goals: [], trackers: [], games: [], potg: [], dead: {} }; }
+function blankState(){ return { players: [], groups: [], goals: [], trackers: [], coaches: [], games: [], potg: [], dead: {} }; }
 
 function applyOp(st, op){
-  st.dead = st.dead || {}; st.potg = st.potg || []; st.trackers = st.trackers || [];
+  st.dead = st.dead || {}; st.potg = st.potg || []; st.trackers = st.trackers || []; st.coaches = st.coaches || [];
   const v = op.v, copy = () => JSON.parse(JSON.stringify(v));
   switch (op.t){
     case 'upsert': {
@@ -76,7 +76,7 @@ function applyOp(st, op){
 // Every op needed to recreate a whole state (used when a device first connects to an empty Sheet).
 function snapshotOps(st){
   const ops = [];
-  ['players', 'groups', 'goals', 'trackers'].forEach(c => {
+  ['players', 'groups', 'goals', 'trackers', 'coaches'].forEach(c => {
     (st[c] || []).forEach(v => ops.push({ t: 'upsert', c, v }));
     ops.push({ t: 'order', c, ids: (st[c] || []).map(x => x.id) });
   });
