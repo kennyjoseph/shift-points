@@ -188,16 +188,16 @@ function rebuild_(ss, log, last){
     allEv.map(x => [x.g.id, x.g.date, x.g.name, x.e.period, new Date(x.e.ts), x.e.targetType, x.e.targetName,
       x.e.goalName, w(x.e), (x.e.members || []).map(id => nm(pl(id))).join(', '), x.e.coach || '']));
 
-  // Tally: one row per game x goal x who, ready for a pivot table or chart.
+  // Tally: one row per game x period x goal x who, ready for a pivot table or chart.
   const tally = {};
   allEv.forEach(x => {
-    const k = [x.g.id, x.e.goalId, x.e.targetType, x.e.targetType === 'group' ? x.e.targetName : x.e.targetId].join('|');
+    const k = [x.g.id, x.e.period, x.e.goalId, x.e.targetType, x.e.targetType === 'group' ? x.e.targetName : x.e.targetId].join('|');
     if (!tally[k]){ const gl = goalOf(x.e.goalId);
-      tally[k] = [x.g.id, x.g.date, x.g.name, gl ? gl.name : x.e.goalName, scopeName[gl ? gl.scope : ''] || x.e.targetType,
+      tally[k] = [x.g.id, x.g.date, x.g.name, x.e.period === 'OT' ? 'OT' : 'P' + x.e.period, gl ? gl.name : x.e.goalName, scopeName[gl ? gl.scope : ''] || x.e.targetType,
                   x.e.targetType === 'player' ? nm(pl(x.e.targetId)) : x.e.targetName, 0, w(x.e), 0]; }
-    tally[k][6]++; tally[k][8] += w(x.e);
+    tally[k][7]++; tally[k][9] += w(x.e);
   });
-  write_(ss, 'Tally', ['Game ID', 'Date', 'Game', 'Goal', 'Level', 'Who', 'Times', 'Points Each', 'Points'], Object.keys(tally).map(k => tally[k]));
+  write_(ss, 'Tally', ['Game ID', 'Date', 'Game', 'Period', 'Goal', 'Level', 'Who', 'Times', 'Points Each', 'Points'], Object.keys(tally).map(k => tally[k]));
 
   write_(ss, 'Goals', ['Goal', 'Icon', 'Who Earns It', 'Points', 'Times Awarded', 'Games Used'],
     st.goals.map(x => [x.name, x.icon || '', scopeName[x.scope] || x.scope, x.points,

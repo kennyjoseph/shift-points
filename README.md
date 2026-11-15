@@ -36,6 +36,6 @@ Sync lets several coaches share one set of data. Changes queue on each device an
    - The first device to connect sends its data to the Sheet.
    - Devices that connect later load the team's data from the Sheet. This replaces whatever was on that device.
 
-The Sheet gets these tabs, rebuilt after each sync: **Tally** (one row per game × goal × person, good for pivot tables), **Trackers**, **Tracker Log**, **Players**, **Games**, **Lines**, **Awards**, **Goals**, **Roster**, and **Log**. Log is the raw change history that the other tabs are built from, so don't edit it.
+The Sheet gets these tabs, rebuilt after each sync: **Tally** (one row per game × period × goal × person, good for pivot tables), **Trackers**, **Tracker Log**, **Players**, **Games**, **Lines**, **Awards**, **Goals**, **Roster**, and **Log**. Log is the raw change history that the other tabs are built from, so don't edit it.
 
 **If you change `Code.gs` later:** go to **Deploy → Manage deployments**, click the pencil icon, choose **Version: New version**, and click **Deploy**. The URL stays the same.

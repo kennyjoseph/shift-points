@@ -233,6 +233,14 @@ table.matrix{border-collapse:separate;border-spacing:3px;width:auto;min-width:10
 .matrix td.na{background:repeating-linear-gradient(45deg,transparent 0 4px,#151515 4px 8px)}
 .matrix .rn{position:sticky;left:0;background:var(--panel);font-weight:800;white-space:nowrap;z-index:1;padding-left:6px}
 .matrix .tot{font-weight:900;font-size:16px;background:var(--panel2)}
+table.ptable{margin:8px 0 22px;font-size:14px}
+.ptable td,.ptable th{padding:7px 4px;border-bottom:1px solid var(--line)}
+.ptable th.c,.ptable td.c{text-align:center;width:40px;font-variant-numeric:tabular-nums;font-weight:800}
+.ptable th.cur{color:var(--fg)}
+.ptable td.cur{background:var(--panel2)}
+.ptable .gname2{font-weight:700;font-size:13px;line-height:1.2}
+.ptable .tot{font-weight:900}
+.ptable tr.ptot td{border-bottom:0;font-weight:900}
 .trtabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
 .trtabs button{flex:none;border:1px solid var(--line2);background:var(--panel2);border-radius:999px;padding:12px 18px;font-weight:800;color:var(--dim);font-size:15px}
 .trtabs button.on{background:var(--fg);color:var(--ink);border-color:var(--fg)}
@@ -620,6 +628,7 @@ function renderLive(g){
     <div class="gamegrid">
       <div class="gcards">${cards || '<div class="empty">No goals for this game. Pick some under ‹ Lineup.</div>'}</div>
       <div class="panel">
+        ${goals.length ? periodTable(g, goals) : ''}
         <h2>Recent</h2>
         <p class="sub">${evts.length} tallies · ${evts.reduce((a, e) => a + weight(e), 0)} points</p>
         <div class="feed">${[...evts].sort((a,b) => b.ts - a.ts).slice(0, 25).map(e => `
@@ -627,6 +636,17 @@ function renderLive(g){
             <button class="ib del" data-act="delev" data-id="${e.id}">✕</button></div>`).join('') || '<div class="empty">Tap a goal to give it out</div>'}</div>
       </div>
     </div>`;
+}
+function periodTable(g, goals){
+  const evts = g.events, pers = PERIODS.filter(p => p !== 'OT' || evts.some(e => e.period === 'OT') || g.period === 'OT');
+  const n = (gid, p) => evts.filter(e => e.goalId === gid && e.period === p).length;
+  const pts = p => evts.filter(e => e.period === p).reduce((a, e) => a + weight(e), 0);
+  const c = (v, cur) => `<td class="c${cur ? ' cur' : ''}">${v || '·'}</td>`;
+  return `<h2>By period</h2>
+    <table class="ptable"><tr><th></th>${pers.map(p => `<th class="c${p === g.period ? ' cur' : ''}">${p === 'OT' ? 'OT' : 'P' + p}</th>`).join('')}<th class="c">All</th></tr>
+    ${goals.map(x => `<tr><td class="gname2">${esc(x.icon || '')} ${esc(x.name)}</td>${pers.map(p => c(n(x.id, p), p === g.period)).join('')}<td class="c tot">${evts.filter(e => e.goalId === x.id).length || '·'}</td></tr>`).join('')}
+    <tr class="ptot"><td class="gname2">Points</td>${pers.map(p => c(pts(p), p === g.period)).join('')}<td class="c tot">${evts.reduce((a, e) => a + weight(e), 0)}</td></tr>
+    </table>`;
 }
 // The popup: every eligible target as a toggle, then Apply.
 function pickerBody(g, goal){
@@ -692,7 +712,7 @@ function statGames(){ return UI.stGame === 'all' ? S.games : S.games.filter(g =>
 function renderStats(){
   if (UI.stGame !== 'all' && !S.games.find(g => g.id === UI.stGame)) UI.stGame = 'all';
   if (UI.stGoal !== 'all' && !S.goals.find(g => g.id === UI.stGoal)) UI.stGoal = 'all';
-  const L = UI.stLevel, byGame = UI.stCols === 'games';
+  const L = UI.stLevel, byGame = UI.stCols === 'games', byPeriod = UI.stCols === 'periods';
   const games = [...S.games].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   let rows;
   if (L === 'player') rows = S.players.map(p => ({ name: pname(p), here: g => gPresent(g).includes(p.id),
@@ -704,7 +724,15 @@ function renderStats(){
 
   const scope = { player: 'individual', group: 'group', team: 'team' }[L];
   let cols, measure;
-  if (!byGame){
+  if (byPeriod){
+    const goal = S.goals.find(x => x.id === UI.stGoal), gs = statGames();
+    const ev = gs.flatMap(g => g.events).filter(e => !goal || e.goalId === goal.id);
+    const pers = PERIODS.filter(p => p !== 'OT' || ev.some(e => e.period === 'OT'));
+    cols = pers.map(p => ({ head: p === 'OT' ? 'OT' : 'Period ' + p, sub: '' }));
+    rows.forEach(r => { r.cells = pers.map(p => { const l = ev.filter(e => e.period === p && r.match(e)); return goal ? l.length : l.reduce((a,e) => a + weight(e), 0); });
+      r.total = r.cells.reduce((a,v) => a + v, 0); });
+    measure = (goal ? `Cells are times “${goal.name}” was earned in each period` : 'Cells are points (tallies × each goal\'s points) in each period') + (UI.stGame === 'all' ? ', added up over all games.' : ' of this game.');
+  } else if (!byGame){
     const ev = statGames().flatMap(g => g.events);
     const gl = S.goals.filter(x => x.scope === scope || L === 'team' || (L === 'player' && UI.share) || ev.some(e => e.goalId === x.id && rows.some(r => r.match(e))));
     cols = gl.map(x => ({ head: `${x.icon || ''} ${x.name}`, sub: `${x.points} pt${x.points == 1 ? '' : 's'}`, val: r => ev.filter(e => e.goalId === x.id && r.match(e)).length }));
@@ -730,10 +758,9 @@ function renderStats(){
   $('#stats').innerHTML = `
     <div class="toolbar">
       ${seg('stlevel', L, [['player','Players'],['group','Lines'],['team','Team']])}
-      ${seg('stcols', UI.stCols, [['goals','By goal'],['games','By game']])}
-      ${byGame
-        ? `<select data-act-change="stgoal"><option value="all">Overall points</option>${S.goals.map(x => `<option value="${x.id}" ${UI.stGoal === x.id ? 'selected' : ''}>${esc(x.icon || '')} ${esc(x.name)}</option>`).join('')}</select>`
-        : `<select data-act-change="stgame"><option value="all">All games (${S.games.length})</option>${[...games].reverse().map(g => `<option value="${g.id}" ${UI.stGame === g.id ? 'selected' : ''}>${esc(fmtDate(g.date))} — ${esc(g.name)}</option>`).join('')}</select>`}
+      ${seg('stcols', UI.stCols, [['goals','By goal'],['games','By game'],['periods','By period']])}
+      ${byGame || byPeriod ? `<select data-act-change="stgoal"><option value="all">Overall points</option>${S.goals.map(x => `<option value="${x.id}" ${UI.stGoal === x.id ? 'selected' : ''}>${esc(x.icon || '')} ${esc(x.name)}</option>`).join('')}</select>` : ''}
+      ${!byGame ? `<select data-act-change="stgame"><option value="all">All games (${S.games.length})</option>${[...games].reverse().map(g => `<option value="${g.id}" ${UI.stGame === g.id ? 'selected' : ''}>${esc(fmtDate(g.date))} — ${esc(g.name)}</option>`).join('')}</select>` : ''}
       ${L === 'player' ? `<label class="ck"><input type="checkbox" data-act-change="share" ${UI.share ? 'checked' : ''}> Include line & team goals</label>` : ''}
     </div>
     <div class="panel">
