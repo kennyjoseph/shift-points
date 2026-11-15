@@ -354,6 +354,7 @@ header nav{margin-left:0}
 <script src="ops.js"></script>
 <script>
 const KEY = 'shiftpoints.v1';
+const APP_VERSION = '8';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = s => document.querySelector(s);
@@ -556,7 +557,8 @@ function renderGameList(){
           <span class="status s-${gameStatus(x).toLowerCase()}">${gameStatus(x)}</span>
         </button>`).join('') || '<div class="empty">No games yet</div>'}</div>
     </div>
-  </div>`;
+  </div>
+  <p class="breakdown" style="text-align:center;margin-top:24px">Version ${APP_VERSION}</p>`;
 }
 
 /* ---------------- GAME: LINEUP (per game) ---------------- */
@@ -842,6 +844,7 @@ function syncForm(){
       ${SY.url ? `<button class="btn primary" data-act="syncsave">Save</button><button class="btn" data-act="syncnow">Sync now</button><button class="btn" data-act="syncoff">Disconnect</button>`
                : `<button class="btn primary" data-act="syncconnect">Connect</button>`}
     </div>
+    <p class="breakdown">App version ${APP_VERSION}</p>
     <p class="breakdown">Setup steps: <a href="https://github.com/kennyjoseph/shift-points#google-sheet-sync" target="_blank" style="color:var(--fg)">github.com/kennyjoseph/shift-points</a></p>
   </div>`;
 }
