@@ -16,26 +16,19 @@ Everything is saved on the device first, so the app works with no signal.
 
 ## Google Sheet sync
 
-Sync lets several coaches share one set of data. Changes queue on each device and send in the background when there's a connection. If the connection drops partway through, the device just resends; nothing is double-counted.
+Several coaches can share one set of data through a Google Sheet. Changes queue on each device and send in the background when there's a connection. If a send fails partway, the device just resends; nothing is double-counted.
+
+The Sheet's script ([`apps-script/Code.gs`](apps-script/Code.gs)) is deliberately simple. It only stores changes and writes whatever summary tabs the app sends. **App updates never require touching the Sheet.**
 
 **One-time setup (head coach):**
 
-1. Create a new Google Sheet, e.g. "Shift Points 2026-27".
-2. In the Sheet, open **Extensions → Apps Script**.
-3. Delete what's there, then paste in all of [`apps-script/Code.gs`](apps-script/Code.gs).
-4. Change `TEAM_CODE` near the top of the server section (search for `change-me`) to a code only your coaches know. Click **Save**.
-5. Click **Deploy → New deployment**. Click the gear icon, choose **Web app**, and set:
-   - Execute as: **Me**
-   - Who has access: **Anyone**
-6. Click **Deploy**, approve the permissions prompt, and copy the **Web app URL** (it ends in `/exec`).
+1. Create a Google Sheet, then open **Extensions → Apps Script**.
+2. Replace everything there with the contents of `apps-script/Code.gs`. Change `TEAM_CODE` from `change-me` to your team code, then click **Save**.
+3. Click **Deploy → New deployment**, click the gear icon, choose **Web app**, and set Execute as: **Me** and Who has access: **Anyone**. Click **Deploy** and approve the permissions prompt.
+4. Copy the web app URL (it ends in `/exec`) and set `TEAM_SHEET_URL` in `index.html` to it.
 
-**On each coach's device:**
+**Each coach:** open the app, then **Share → Add to Home Screen**. On the Game tab, enter the team code and your name and tap **Join**. Coaches who are already connected can tap the sync button and then **Invite a coach** to send a one-tap join link.
 
-1. In the app, tap **Sync off** in the top bar (on a phone it's the small dot).
-2. Paste the web app URL, enter the team code and your name, and tap **Connect**.
-   - The first device to connect sends its data to the Sheet.
-   - Devices that connect later load the team's data from the Sheet. This replaces whatever was on that device.
+The first device to join sends its data to the Sheet. Devices that join later load the team's data.
 
-The Sheet gets these tabs, rebuilt after each sync: **Tally** (one row per game × period × goal × person, good for pivot tables), **Trackers**, **Tracker Log**, **Players**, **Games**, **Lines**, **Awards**, **Goals**, **Roster**, and **Log**. Log is the raw change history that the other tabs are built from, so don't edit it.
-
-**If you change `Code.gs` later:** go to **Deploy → Manage deployments**, click the pencil icon, choose **Version: New version**, and click **Deploy**. The URL stays the same.
+**Sheet tabs:** Tally (one row per game × period × goal × person, good for pivot tables), Players, Games, Lines, Awards, Trackers, Goals, Roster, and Log. Log is the raw change history, so don't edit it.

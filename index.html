@@ -261,6 +261,7 @@ header nav{margin-left:0}
 .syncf{display:flex;flex-direction:column;gap:12px}
 .syncf label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--dim);font-weight:700}
 .syncf input{font-size:16px}
+.joinbox{margin-bottom:16px;border-color:var(--fg)}
 
 /* ---------- phone ---------- */
 @media (max-width:600px){
@@ -354,7 +355,7 @@ header nav{margin-left:0}
 <script src="ops.js"></script>
 <script>
 const KEY = 'shiftpoints.v1';
-const APP_VERSION = '9';
+const APP_VERSION = '10';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = s => document.querySelector(s);
@@ -537,7 +538,7 @@ function renderGame(){
 }
 function renderGameList(){
   const games = [...S.games].sort((a,b) => (b.date || '').localeCompare(a.date || ''));
-  $('#game').innerHTML = `
+  $('#game').innerHTML = joinBox() + `
   <div class="grid3 two">
     <div class="panel">
       <img src="logo.png" alt="Clarence" style="width:160px;border-radius:10px;margin-bottom:12px">
@@ -834,21 +835,38 @@ function renderTrackers(){
 }
 
 /* ---------------- SYNC ---------------- */
+// The team's Google Sheet web app. Built in so coaches only need the team code.
+// (Useless without the team code, which lives only in the Sheet's script.)
+const TEAM_SHEET_URL = '';
+const okUrl = u => /^(https:\/\/script\.google(usercontent)?\.com\/|http:\/\/localhost)/.test(u);
+const inviteLink = () => `${location.origin}${location.pathname}#join=${encodeURIComponent(SY.code)}`;
 function syncForm(){
   const st = !SY.url ? 'Not connected. This device keeps everything to itself.'
     : SYS.busy ? 'Syncing…' : SYS.err ? `Couldn't reach the Sheet: ${esc(SYS.err)}. ${OUT.length} change(s) will send when there's signal.`
     : OUT.length ? `${OUT.length} change(s) waiting to send.` : 'All changes are in the Sheet.';
+  const urlField = `<label>Sheet web app URL<input id="syUrl" value="${esc(SY.url || TEAM_SHEET_URL)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off"></label>`;
   return `<div class="syncf">
     <p class="sub" style="margin:0">${st}</p>
-    <label>Sheet web app URL<input id="syUrl" value="${esc(SY.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off"></label>
-    <label>Team code<input id="syCode" value="${esc(SY.code)}" placeholder="The code in the Sheet's script" autocomplete="off" autocapitalize="off"></label>
-    <label>Your name (shows on awards you give)<input id="syCoach" value="${esc(SY.coach)}" placeholder="Coach Kenny"></label>
+    ${TEAM_SHEET_URL ? '' : urlField}
+    <label>Team code<input id="syCode" value="${esc(SY.code)}" placeholder="Ask your head coach" autocomplete="off" autocapitalize="off"></label>
+    <label>Your name (shows on tallies you give)<input id="syCoach" value="${esc(SY.coach)}" placeholder="Coach Kenny"></label>
     <div class="row" style="flex-wrap:wrap">
-      ${SY.url ? `<button class="btn primary" data-act="syncsave">Save</button><button class="btn" data-act="syncnow">Sync now</button><button class="btn" data-act="syncoff">Disconnect</button>`
+      ${SY.url ? `<button class="btn primary" data-act="syncsave">Save</button><button class="btn" data-act="syncnow">Sync now</button><button class="btn" data-act="invite">Invite a coach</button><button class="btn" data-act="syncoff">Disconnect</button>`
                : `<button class="btn primary" data-act="syncconnect">Connect</button>`}
     </div>
+    ${TEAM_SHEET_URL ? `<details><summary>Use a different Sheet</summary>${urlField}</details>` : ''}
     <p class="breakdown">App version ${APP_VERSION}</p>
-    <p class="breakdown">Setup steps: <a href="https://github.com/kennyjoseph/shift-points#google-sheet-sync" target="_blank" style="color:var(--fg)">github.com/kennyjoseph/shift-points</a></p>
+  </div>`;
+}
+function joinBox(){ // shown on the Game tab until this device joins the team
+  if (!TEAM_SHEET_URL || SY.url) return '';
+  return `<div class="panel joinbox">
+    <h2>Join your team</h2><p class="sub">Enter the team code to share games and tallies with the other coaches. You only do this once.</p>
+    <div class="row" style="flex-wrap:wrap">
+      <input id="joinCode" class="grow" placeholder="Team code" autocomplete="off" autocapitalize="off" style="font-size:17px;padding:14px">
+      <input id="joinName" class="grow" placeholder="Your name" style="font-size:17px;padding:14px">
+      <button class="btn primary" data-act="join" style="padding:14px 24px">Join</button>
+    </div>
   </div>`;
 }
 async function post(body){
@@ -862,6 +880,14 @@ async function post(body){
   } catch(e){ throw e.name === 'AbortError' ? new Error('Timed out') : e; }
   finally { clearTimeout(t); }
 }
+function takeResponse(res, sentCount){
+  OUT = OUT.slice(sentCount);
+  const remote = res.ops.some(r => r.device !== SY.device);
+  if (res.ops.length){ res.ops.forEach(r => applyOp(S, r.op)); OUT.forEach(op => applyOp(S, op)); }
+  SY.since = res.seq; save(); saveSync(); SYS.err = '';
+  if (remote) refresh();
+  return res.ops.length > 0;
+}
 function scheduleSync(ms){ clearTimeout(syncTimer); syncTimer = setTimeout(sync, ms ?? 2000); }
 async function sync(){
   if (!SY.url || SYS.busy) return;
@@ -870,32 +896,112 @@ async function sync(){
   const sending = OUT.slice(0, 150);
   try {
     const res = await post({ code:SY.code, device:SY.device, coach:SY.coach, since:SY.since, ops:sending });
-    OUT = OUT.slice(sending.length);
-    const remote = res.ops.some(r => r.device !== SY.device);
-    if (res.ops.length){ res.ops.forEach(r => applyOp(S, r.op)); OUT.forEach(op => applyOp(S, op)); }
-    SY.since = res.seq; save(); saveSync(); SYS.err = '';
-    if (remote) refresh();
+    if (takeResponse(res, sending.length)) scheduleTabs();
   } catch(e){ SYS.err = e.message; }
   SYS.busy = false; updateSyncDot();
   if (UI.sheet && UI.sheet.type === 'sync') renderSheet();
   if (OUT.length && !SYS.err) scheduleSync(300);
 }
-async function connect(){
-  SY.url = $('#syUrl').value.trim(); SY.code = $('#syCode').value.trim(); SY.coach = $('#syCoach').value.trim();
-  if (!/^(https:\/\/script\.google(usercontent)?\.com\/|http:\/\/localhost)/.test(SY.url)){ SY.url = ''; return alert('That doesn\'t look like a Google Apps Script web app URL.'); }
-  SYS.busy = true; renderSheet();
+async function connect(url, code, coach){
+  SY.url = (url || '').trim(); SY.code = (code || '').trim(); SY.coach = (coach || '').trim();
+  if (!okUrl(SY.url)){ SY.url = ''; return alert('That doesn\'t look like a Google Apps Script web app URL.'); }
+  if (!SY.code){ SY.url = ''; return alert('Enter the team code.'); }
+  SYS.busy = true; updateSyncDot();
   try {
     const res = await post({ code:SY.code, device:SY.device, coach:SY.coach, since:0, ops:[] });
     if (res.seq === 0){
       OUT = snapshotOps(S); SY.since = 0; saveSync(); toast('Connected. Sending your data to the Sheet…');
     } else {
-      if (!confirm(`The team Sheet already has data. Load it onto this device?\n\nThis replaces the roster, goals and games on this device. (Save a backup first if you need what's here.)`)){ SY.url = ''; saveSync(); return; }
+      const fresh = !S.games.length && !S.potg.length;
+      if (!fresh && !confirm(`The team Sheet already has data. Load it onto this device?\n\nThis replaces the roster, goals and games on this device. (Save a backup first if you need what's here.)`)){ SY.url = ''; saveSync(); return; }
       S = blankState(); res.ops.forEach(r => applyOp(S, r.op)); SY.since = res.seq; OUT = []; save(); saveSync();
-      ensureTrackers(); toast('Loaded the team\'s data');
+      ensureTrackers(); toast('You\'re on the team. Data loaded.');
     }
+    SY.tabHashes = {}; saveSync();
   } catch(e){ SY.url = ''; saveSync(); alert('Could not connect: ' + e.message); }
-  finally { SYS.busy = false; SYS.err = ''; updateSyncDot(); render(); }
-  if (SY.url) sync();
+  finally { SYS.busy = false; SYS.err = ''; updateSyncDot(); if (UI.sheet && UI.sheet.type === 'sync') ACT.close(); render(); }
+  if (SY.url){ sync(); scheduleTabs(true); }
+}
+
+/* Summary tabs for the Sheet. Built here (not in the Sheet's script) so changes ship with app updates.
+   Only tabs whose contents changed are sent, at most every few minutes, so slow connections aren't swamped. */
+let tabsTimer = null, lastTabsAt = 0;
+function scheduleTabs(soon){
+  if (!SY.url) return;
+  clearTimeout(tabsTimer);
+  tabsTimer = setTimeout(uploadTabs, soon ? 1500 : Math.max(20000, 300000 - (Date.now() - lastTabsAt)));
+}
+const strHash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) | 0; return String(h); };
+async function uploadTabs(){
+  if (!SY.url) return;
+  if (SYS.busy || OUT.length || !navigator.onLine) return scheduleTabs();
+  const tabs = buildTabs(), changed = {}, hashes = {};
+  SY.tabHashes = SY.tabHashes || {};
+  Object.keys(tabs).forEach(n => { const h = strHash(JSON.stringify(tabs[n])); if (SY.tabHashes[n] !== h){ changed[n] = tabs[n]; hashes[n] = h; } });
+  if (!Object.keys(changed).length) return;
+  SYS.busy = true; updateSyncDot();
+  try {
+    const res = await post({ code:SY.code, device:SY.device, coach:SY.coach, since:SY.since, ops:[], tabs:changed });
+    Object.assign(SY.tabHashes, hashes); lastTabsAt = Date.now();
+    if (takeResponse(res, 0)) scheduleTabs();
+  } catch(e){ SYS.err = e.message; scheduleTabs(); }
+  SYS.busy = false; updateSyncDot();
+}
+function buildTabs(){
+  const nm = p => p ? pname(p) : '(removed)';
+  const games = [...S.games].sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const allEv = games.flatMap(g => g.events.map(e => ({ g, e })));
+  const sum = l => l.reduce((a, x) => a + weight(x.e), 0);
+  const scopeName = { individual:'Individual', group:'Line / Group', team:'Whole Team' };
+  const per = p => p === 'OT' ? 'OT' : 'P' + p;
+  const marks = (tid, pid) => S.potg.filter(x => (x.trackerId || 'potg') === tid && x.playerId === pid);
+  const T = {};
+
+  const tally = {};
+  allEv.forEach(({ g, e }) => {
+    const k = [g.id, e.period, e.goalId, e.targetType, e.targetType === 'group' ? e.targetName : e.targetId].join('|');
+    if (!tally[k]){ const gl = S.goals.find(x => x.id === e.goalId);
+      tally[k] = [g.id, g.date, g.name, per(e.period), gl ? gl.name : e.goalName, scopeName[gl ? gl.scope : ''] || e.targetType,
+                  e.targetType === 'player' ? nm(player(e.targetId)) : e.targetName, 0, weight(e), 0]; }
+    tally[k][7]++; tally[k][9] += weight(e);
+  });
+  T['Tally'] = [['Game ID','Date','Game','Period','Goal','Level','Who','Times','Points Each','Points'], ...Object.values(tally)];
+
+  T['Players'] = [['Player','Games Here','Own Points','Line Points','Team Points', ...trackers().map(t => t.name)],
+    ...S.players.map(p => [nm(p), games.filter(g => gPresent(g).includes(p.id)).length,
+      sum(allEv.filter(x => x.e.targetType === 'player' && x.e.targetId === p.id)),
+      sum(allEv.filter(x => x.e.targetType === 'group' && (x.e.members || []).includes(p.id))),
+      sum(allEv.filter(x => x.e.targetType === 'team' && (x.e.members || []).includes(p.id))),
+      ...trackers().map(t => marks(t.id, p.id).length)])];
+
+  T['Trackers'] = [['Tracker','Player','Date','Game','Game ID'],
+    ...[...S.potg].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map(x => {
+      const t = trackers().find(t => t.id === (x.trackerId || 'potg'));
+      return [t ? t.name : '(deleted)', nm(player(x.playerId)), x.date || '', x.gameName || '', x.gameId || ''];
+    })];
+
+  T['Games'] = [['Game ID','Date','Game','Status','Players Here','Out','Tallies','Points', ...trackers().map(t => t.name)],
+    ...games.map(g => { const here = gPresent(g);
+      return [g.id, g.date, g.name, gameStatus(g), here.map(id => nm(player(id))).join(', '),
+        S.players.filter(p => !here.includes(p.id)).map(nm).join(', '), g.events.length, g.events.reduce((a,e) => a + weight(e), 0),
+        ...trackers().map(t => S.potg.filter(x => x.gameId === g.id && (x.trackerId || 'potg') === t.id).map(x => nm(player(x.playerId))).join(', '))]; })];
+
+  T['Lines'] = [['Game ID','Date','Game','Line','Players','Line Points'],
+    ...games.flatMap(g => gLines(g).map(l => [g.id, g.date, g.name, l.name,
+      l.members.filter(m => gPresent(g).includes(m)).map(m => nm(player(m))).join(', '),
+      g.events.filter(e => e.targetType === 'group' && e.targetId === l.id).reduce((a,e) => a + weight(e), 0)]))];
+
+  T['Awards'] = [['Game ID','Date','Game','Period','Time','Level','Who','Goal','Points','Players','Coach'],
+    ...allEv.map(({ g, e }) => [g.id, g.date, g.name, per(e.period), new Date(e.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}),
+      e.targetType, e.targetName, e.goalName, weight(e), (e.members || []).map(id => nm(player(id))).join(', '), e.coach || ''])];
+
+  T['Goals'] = [['Goal','Icon','Who Earns It','Points Each','Times Earned','Games Used'],
+    ...S.goals.map(x => [x.name, x.icon || '', scopeName[x.scope] || x.scope, Number(x.points) || 0,
+      allEv.filter(a => a.e.goalId === x.id).length, games.filter(g => gGoalIds(g).includes(x.id)).length])];
+
+  T['Roster'] = [['Number','Player','Default Lines'],
+    ...S.players.map(p => [p.number || '', p.name, S.groups.filter(g => g.members.includes(p.id)).map(g => g.name).join(', ')])];
+  return T;
 }
 function updateSyncDot(){
   const b = $('#syncbtn'); let cls, txt;
@@ -980,7 +1086,7 @@ const ACT = {
   delgame: d => { const g = S.games.find(x => x.id === d.id); if (!confirm(`Delete “${g.name}” and all of its points? This can't be undone.`)) return; commit({ t:'gamedel', id:g.id }); openGame(null); render(); },
   period: d => { setGame(game(), { period:d.p }); render(); },
   endgame: () => { const g = game(); if (!confirm('End this game? You can reopen it later.')) return;
-    setGame(g, { ended:true }); UI.potgGame = g.id; UI.tracker = 'potg'; UI.mode = 'prep'; setView('potg'); toast('Game over. Pick the Player of the Game!'); },
+    setGame(g, { ended:true }); scheduleTabs(true); UI.potgGame = g.id; UI.tracker = 'potg'; UI.mode = 'prep'; setView('potg'); toast('Game over. Pick the Player of the Game!'); },
   close: () => { UI.sheet = null; $('#sheet').classList.remove('on'); },
   lgoal: d => { const g = S.goals.find(x => x.id === d.id); UI.sheet = { type:'pick', goalId:d.id, sel:new Set(g && g.scope === 'team' ? ['team'] : []) }; renderSheet(); },
   tog: d => { const s = UI.sheet.sel; s.has(d.id) ? s.delete(d.id) : s.add(d.id); updateApply(); },
@@ -1016,8 +1122,14 @@ const ACT = {
 
   // sync + files
   syncsettings: () => { UI.sheet = { type:'sync' }; renderSheet(); },
-  syncconnect: () => connect(),
-  syncsave: () => { SY.coach = $('#syCoach').value.trim(); SY.code = $('#syCode').value.trim(); saveSync(); ACT.close(); sync(); },
+  syncconnect: () => connect(TEAM_SHEET_URL && !$('#syUrl') ? TEAM_SHEET_URL : ($('#syUrl').value.trim() || TEAM_SHEET_URL), $('#syCode').value, $('#syCoach').value),
+  join: () => connect(TEAM_SHEET_URL, $('#joinCode').value, $('#joinName').value),
+  invite: async () => {
+    const link = inviteLink(), text = `Join the team in Shift Points: ${link}\n\nOpen it, then Share → Add to Home Screen. If it asks, the team code is ${SY.code}.`;
+    try { if (navigator.share){ await navigator.share({ title:'Shift Points', text }); return; } } catch(e){ if (e.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text); toast('Invite copied. Paste it in a text.'); } catch(e){ prompt('Copy this invite:', text); }
+  },
+  syncsave: () => { SY.coach = $('#syCoach').value.trim(); SY.code = $('#syCode').value.trim(); const u = $('#syUrl'); if (u && okUrl(u.value.trim())) SY.url = u.value.trim(); saveSync(); ACT.close(); sync(); },
   syncnow: () => { SYS.err = ''; sync(); },
   syncoff: () => {
     if (OUT.length && !confirm(`${OUT.length} change(s) haven't reached the Sheet yet and won't be sent. Disconnect anyway?`)) return;
@@ -1092,10 +1204,15 @@ $('#importFile').addEventListener('change', e => {
 });
 
 setInterval(() => sync(), 30000);
+setTimeout(() => scheduleTabs(), 5000); // also pushes new tab layouts after an app update
 addEventListener('online', () => { SYS.err = ''; sync(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(); });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 ensureTrackers();
+// Invite links: ...#join=TEAMCODE connects this device right away.
+(() => { const m = location.hash.match(/join=([^&]+)/); if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  if (TEAM_SHEET_URL && !SY.url) setTimeout(() => connect(TEAM_SHEET_URL, decodeURIComponent(m[1]), ''), 300); })();
 updateSyncDot();
 setView(UI.view);
 sync();

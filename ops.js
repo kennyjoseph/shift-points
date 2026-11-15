@@ -1,4 +1,4 @@
-// Shared by the app (index.html) and the Google Apps Script (apps-script/Code.gs).
+// The app's change log (used by index.html). The Google Sheet just stores these ops in order.
 // Every change is an "op". Applying the same op twice is harmless, so a coach's phone can
 // safely resend after a dropped connection, and every device that replays the ops in the
 // Sheet's order ends up with the same data.
