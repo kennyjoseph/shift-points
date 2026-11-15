@@ -262,6 +262,10 @@ header nav{margin-left:0}
 .syncf label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--dim);font-weight:700}
 .syncf input{font-size:16px}
 .joinbox{margin-bottom:16px;border-color:var(--fg)}
+.item.locked{opacity:.85}
+.lockpts{font-weight:800;font-size:13px;color:var(--dim);padding:0 6px}
+.owner{font-size:11px;color:var(--dimmer);font-weight:600}
+.item.locked .owner{flex:1;padding-left:50px}
 
 /* ---------- phone ---------- */
 @media (max-width:600px){
@@ -355,7 +359,7 @@ header nav{margin-left:0}
 <script src="ops.js"></script>
 <script>
 const KEY = 'shiftpoints.v1';
-const APP_VERSION = '12';
+const APP_VERSION = '13';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = s => document.querySelector(s);
@@ -492,18 +496,43 @@ function renderRoster(){
 }
 
 /* ---------------- GOALS ---------------- */
-function renderGoals(){
-  const goals = SCOPES.map(([sc, label]) => {
-    const list = S.goals.filter(g => g.scope === sc);
-    return `<div class="scopehead">${label}</div>` + (list.map(g => `
+/* Goal ownership: a goal records the device (and coach name) that added it. Only that device can change or
+   delete it. Goals from before ownership existed belong to the head coach = the first device to join the Sheet. */
+const goalOwner = g => g.by || SY.headDevice || null;
+function canEditGoal(g){
+  if (!SY.url) return !g.by || g.by === SY.device;        // not on a team: your own device, your goals
+  const o = goalOwner(g); return !!o && o === SY.device;   // on a team: owner only (locked until owner is known)
+}
+function ownerLabel(g){
+  const o = goalOwner(g);
+  const who = o && o === SY.device ? 'you' : (g.byName || (g.by ? 'another coach' : 'the head coach'));
+  return `Added by ${esc(who)}${g.at ? ' · ' + esc(new Date(g.at).toLocaleDateString([], {month:'short', day:'numeric'})) : ''}`;
+}
+function goalRow(g){
+  const scopeSel = `<select data-edit="goals:${g.id}:scope" style="flex:1;padding:6px 8px;font-size:13px" title="Who earns it">${SCOPES.map(([v,l]) => `<option value="${v}" ${v===g.scope?'selected':''}>${l}</option>`).join('')}</select>`;
+  if (!canEditGoal(g)) return `
+      <div class="item locked" style="flex-wrap:wrap">
+        <span class="emo" style="display:flex;align-items:center;justify-content:center">${esc(g.icon || '⭐')}</span>
+        <b style="flex:1 1 60%;padding:8px">${esc(g.name)}</b>
+        <span class="lockpts">${g.points} pt${g.points == 1 ? '' : 's'} each</span>
+        <span class="owner">🔒 ${ownerLabel(g)}</span>
+        ${moveBtns('move', g.id, 'data-coll="goals"')}
+      </div>`;
+  return `
       <div class="item" style="flex-wrap:wrap">
         <button class="emo" data-act="pick" data-target="${g.id}">${esc(g.icon || '⭐')}</button>
         <input style="flex:1 1 70%;font-weight:700" data-edit="goals:${g.id}:name" value="${esc(g.name)}">
         <span style="width:44px"></span>
         <input type="number" class="num" data-edit="goals:${g.id}:points" value="${g.points}" title="Points each time it's earned"><span class="breakdown">pts each</span>
-        <select data-edit="goals:${g.id}:scope" style="flex:1;padding:6px 8px;font-size:13px" title="Who earns it">${SCOPES.map(([v,l]) => `<option value="${v}" ${v===sc?'selected':''}>${l}</option>`).join('')}</select>
+        ${scopeSel}
         ${moveBtns('move', g.id, 'data-coll="goals"')}${delBtn('del', g.id, 'data-coll="goals"')}
-      </div>`).join('') || '<div class="empty" style="padding:8px">None</div>');
+        <span class="owner" style="flex-basis:100%;padding-left:50px">${ownerLabel(g)}</span>
+      </div>`;
+}
+function renderGoals(){
+  const goals = SCOPES.map(([sc, label]) => {
+    const list = S.goals.filter(g => g.scope === sc);
+    return `<div class="scopehead">${label}</div>` + (list.map(goalRow).join('') || '<div class="empty" style="padding:8px">None</div>');
   }).join('');
   $('#goals').innerHTML = `
   <div class="grid3 two">
@@ -890,6 +919,15 @@ function takeResponse(res, sentCount){
   if (remote) refresh();
   return res.ops.length > 0;
 }
+// One-time lookup: which device joined the Sheet first (owner of goals made before ownership existed).
+let headLookup = false;
+async function ensureHead(){
+  if (!SY.url || SY.headDevice || headLookup || !navigator.onLine) return;
+  headLookup = true;
+  try { const res = await post({ code:SY.code, device:SY.device, coach:SY.coach, since:0, ops:[] });
+    if (res.ops.length){ SY.headDevice = res.ops[0].device; saveSync(); if (UI.view === 'goals') refresh(); } }
+  catch(e){} finally { headLookup = false; }
+}
 function scheduleSync(ms){ clearTimeout(syncTimer); syncTimer = setTimeout(sync, ms ?? 2000); }
 async function sync(){
   if (!SY.url || SYS.busy) return;
@@ -899,6 +937,7 @@ async function sync(){
   try {
     const res = await post({ code:SY.code, device:SY.device, coach:SY.coach, since:SY.since, ops:sending });
     if (takeResponse(res, sending.length)) scheduleTabs();
+    if (!SY.headDevice) ensureHead();
   } catch(e){ SYS.err = e.message; }
   SYS.busy = false; updateSyncDot();
   if (UI.sheet && UI.sheet.type === 'sync') renderSheet();
@@ -911,6 +950,7 @@ async function connect(url, code, coach){
   SYS.busy = true; updateSyncDot();
   try {
     const res = await post({ code:SY.code, device:SY.device, coach:SY.coach, since:0, ops:[] });
+    SY.headDevice = res.seq === 0 ? SY.device : res.ops[0].device;
     if (res.seq === 0){
       OUT = snapshotOps(S); SY.since = 0; saveSync(); toast('Connected. Sending your data to the Sheet…');
     } else {
@@ -997,9 +1037,10 @@ function buildTabs(){
     ...allEv.map(({ g, e }) => [g.id, g.date, g.name, per(e.period), new Date(e.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}),
       e.targetType, e.targetName, e.goalName, weight(e), (e.members || []).map(id => nm(player(id))).join(', '), e.coach || ''])];
 
-  T['Goals'] = [['Goal','Icon','Who Earns It','Points Each','Times Earned','Games Used'],
+  T['Goals'] = [['Goal','Icon','Who Earns It','Points Each','Times Earned','Games Used','Added By','Added On'],
     ...S.goals.map(x => [x.name, x.icon || '', scopeName[x.scope] || x.scope, Number(x.points) || 0,
-      allEv.filter(a => a.e.goalId === x.id).length, games.filter(g => gGoalIds(g).includes(x.id)).length])];
+      allEv.filter(a => a.e.goalId === x.id).length, games.filter(g => gGoalIds(g).includes(x.id)).length,
+      x.byName || (x.by ? 'Unnamed coach' : 'Head coach'), x.at ? new Date(x.at).toLocaleDateString() : ''])];
 
   T['Roster'] = [['Number','Player','Default Lines'],
     ...S.players.map(p => [p.number || '', p.name, S.groups.filter(g => g.members.includes(p.id)).map(g => g.name).join(', ')])];
@@ -1049,6 +1090,7 @@ const ACT = {
   view: d => setView(d.v),
   move: d => { const ids = swapIds(S[d.coll], d.id, +d.dir, d.coll === 'goals' ? x => x.scope : null); if (ids){ commit({ t:'order', c:d.coll, ids }); render(); } },
   del: d => {
+    if (d.coll === 'goals'){ const gl = S.goals.find(x => x.id === d.id); if (gl && !canEditGoal(gl)) return toast('Only the coach who added this goal can delete it.'); }
     if (d.coll === 'trackers'){ ensureTrackers(); if (S.trackers.length <= 1) return alert('Keep at least one tracker.'); }
     const item = S[d.coll].find(x => x.id === d.id);
     if (!confirm(`Delete “${item.name}”? ${d.coll === 'trackers' ? ' Its marks will be hidden.' : ' Past awards stay in the stats.'}`)) return;
@@ -1067,7 +1109,7 @@ const ACT = {
     $('#picker').classList.remove('on');
     if (UI.pickTarget === 'new'){ $('#newIcon').textContent = d.e; document.querySelector('form[data-form=goal] [name=i]').value = d.e; }
     else if (UI.pickTarget.startsWith('tr:')){ ensureTrackers(); const t = S.trackers.find(x => x.id === UI.pickTarget.slice(3)); if (t){ commit({ t:'upsert', c:'trackers', v:Object.assign(clone(t), { icon:d.e }) }); render(); } }
-    else { const g = S.goals.find(x => x.id === UI.pickTarget); if (g){ commit({ t:'upsert', c:'goals', v:Object.assign(clone(g), { icon:d.e }) }); render(); } }
+    else { const g = S.goals.find(x => x.id === UI.pickTarget); if (g && !canEditGoal(g)) return toast('Only the coach who added this goal can change it.'); if (g){ commit({ t:'upsert', c:'goals', v:Object.assign(clone(g), { icon:d.e }) }); render(); } }
   },
   newscope: (d, b) => { b.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); document.querySelector('form[data-form=goal] [name=s]').value = UI.newScope = d.s; },
   newpts: d => { const inp = document.querySelector('form[data-form=goal] [name=p]'); inp.value = Math.max(1, Math.min(20, (+inp.value || 0) + +d.d)); $('#newPts').textContent = inp.value; },
@@ -1154,6 +1196,7 @@ document.addEventListener('change', e => {
   if (d.edit){
     if (d.edit.startsWith('trackers:')) ensureTrackers();
     const [coll, id, field] = d.edit.split(':'), item = S[coll].find(x => x.id === id); if (!item) return;
+    if (coll === 'goals' && !canEditGoal(item)){ toast('Only the coach who added this goal can change it.'); return render(); }
     const val = field === 'points' ? (Number(el.value) || 0) : el.value.trim();
     commit({ t:'upsert', c:coll, v:Object.assign(clone(item), { [field]:val }) });
     if (field === 'scope') render();
@@ -1178,7 +1221,7 @@ document.addEventListener('submit', e => {
   const f = e.target, kind = f.dataset.form, v = n => (f.elements[n]?.value || '').trim();
   if (kind === 'player' && v('n')) addPlayer(v('n'));
   else if (kind === 'group' && v('n')) commit({ t:'upsert', c:'groups', v:{ id: uid(), name: v('n'), members: [] } });
-  else if (kind === 'goal' && v('n')) commit({ t:'upsert', c:'goals', v:{ id: uid(), name: v('n'), scope: v('s'), points: Number(v('p')) || 1, icon: v('i') || '⭐' } });
+  else if (kind === 'goal' && v('n')) commit({ t:'upsert', c:'goals', v:{ id: uid(), name: v('n'), scope: v('s'), points: Number(v('p')) || 1, icon: v('i') || '⭐', by: SY.device, byName: SY.coach || '', at: Date.now() } });
   else if (kind === 'gline' && v('n')) { const n = v('n'); linesOp(game(), ls => ls.push({ id: uid(), name: n, members: [] })); }
   else if (kind === 'newgame'){
     const prev = [...S.games].sort((a,b) => (a.date||'').localeCompare(b.date||'')).pop();
