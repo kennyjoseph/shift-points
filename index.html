@@ -40,7 +40,7 @@ section{display:none} section.on{display:block}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
 .panel h2{margin:0 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--dim);font-weight:800}
 .panel .sub{color:var(--dimmer);font-size:13px;margin:0 0 14px}
-.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:16px;align-items:start}
 .row{display:flex;gap:8px;align-items:center}
 .list{display:flex;flex-direction:column;gap:6px;margin-top:12px}
 .item{display:flex;gap:6px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px}
@@ -106,7 +106,7 @@ kbd{font-family:inherit;font-size:11px;border:1px solid var(--line2);border-bott
 #picker.on{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 #picker button{border:0;background:none;font-size:26px;height:42px;border-radius:8px}
 #picker button:hover,#picker button:active{background:var(--line)}
-.goalbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.goalbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(180px,45%),1fr));gap:10px}
 .gb{position:relative;border:1px solid var(--line2);background:var(--panel2);border-radius:18px;padding:16px;min-height:104px;text-align:left;display:flex;flex-direction:column;gap:6px;transition:transform .08s}
 .gb:active{transform:scale(.95);background:var(--fg);color:var(--ink)}
 .gb .ic{font-size:30px;line-height:1}
@@ -158,11 +158,53 @@ td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
 .toolbar select{padding:12px 14px;border-radius:12px}
 label.ck{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px}
 .breakdown{color:var(--dimmer);font-size:12px}
+
+/* ---------- phone ---------- */
+@media (max-width:600px){
+  header{padding:10px 12px;gap:8px}
+  .brand span{display:none}
+  .brand img{height:32px!important}
+  nav button{padding:8px 14px;font-size:14px}
+  main{padding:12px}
+  .panel{padding:14px}
+  .bar{gap:8px;margin-bottom:10px}
+  .vs{width:100%;font-size:18px}
+  .seg{flex:1}
+  .seg button{flex:1;min-width:0;height:44px;padding:0}
+  .bar .btn{height:52px!important;padding:0 14px}
+  .teamrow{padding:14px 16px;gap:10px}
+  .lrow{grid-template-columns:1fr;gap:6px;padding:8px 0}
+  .lhead{flex-direction:row;align-items:center;min-height:0;padding:10px 14px;gap:10px}
+  .lhead .lg{margin:0 0 0 auto}
+  .lplayers{grid-template-columns:repeat(3,1fr);gap:6px}
+  .pb{min-height:62px;padding:8px 10px;flex-direction:column;align-items:flex-start;gap:2px}
+  .pn{font-size:15px;flex:none;overflow-wrap:anywhere}
+  .pp{font-size:18px}
+  .ln{font-size:17px}
+  .goalbtns{gap:8px}
+  .gb{min-height:92px;padding:12px;border-radius:14px}
+  .gb .ic{font-size:24px}
+  .gb .gn{font-size:14px;padding-right:22px}
+  .gb .gp{font-size:15px;top:10px;right:10px}
+  .gb .cnt{font-size:10px;padding:1px 6px;bottom:8px;right:8px}
+  #sheet .s{padding:16px 14px calc(16px + env(safe-area-inset-bottom))}
+  #sheet .sh .jn{font-size:32px}
+  #sheet .sh h3{font-size:19px}
+  #sheet .sh .btn{padding:12px 20px}
+  #toast{max-width:calc(100% - 24px);font-size:14px;padding:8px 8px 8px 16px}
+  #toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .toolbar > *{flex:1 1 auto}
+  .toolbar span[style]{display:none}
+  .barc{display:none}
+  .start h1{font-size:34px}
+  .item{gap:2px}
+  .ib{width:28px}
+}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand"><img src="logo.png" alt="Clarence" style="height:38px;border-radius:6px">Shift Points</div>
+  <div class="brand"><img src="logo.png" alt="Clarence" style="height:38px;border-radius:6px"><span>Shift Points</span></div>
   <nav>
     <button data-act="view" data-v="setup">Setup</button>
     <button data-act="view" data-v="game">Game</button>
