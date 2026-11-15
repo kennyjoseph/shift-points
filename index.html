@@ -159,6 +159,45 @@ td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
 label.ck{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px}
 .breakdown{color:var(--dimmer);font-size:12px}
 
+/* games list / lineup */
+.grid3.two{grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr))}
+.gitem{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:1px solid var(--line);background:var(--panel2);border-radius:14px;padding:14px 16px}
+.gitem:active{transform:scale(.98)}
+.gd{font-weight:900;font-size:15px;min-width:56px}
+.gname{flex:1;font-weight:800;font-size:17px}
+.gname small{display:block;color:var(--dimmer);font-size:12px;font-weight:600;margin-top:2px}
+.status{font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--line2);border-radius:999px;padding:4px 10px;color:var(--dim);white-space:nowrap}
+.status.s-live{background:var(--fg);color:var(--ink);border-color:var(--fg)}
+.status.s-final{border-style:dashed}
+.gfields{display:flex;gap:8px;flex:1;min-width:240px}
+.gfields input:first-child{flex:1}
+.golive{height:56px;padding:0 26px;font-size:17px}
+.chips.big .chip{padding:10px 16px;font-size:15px}
+/* potg */
+.prow{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px 10px 10px 16px}
+.prow.win{border-color:var(--fg)}
+.prow.out{opacity:.45}
+.trtabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.trtabs button{flex:none;border:1px solid var(--line2);background:var(--panel2);border-radius:999px;padding:12px 18px;font-weight:800;color:var(--dim);font-size:15px}
+.trtabs button.on{background:var(--fg);color:var(--ink);border-color:var(--fg)}
+.pinfo{flex:1;min-width:0}
+.pinfo b{font-size:17px}
+.pinfo small{display:block;color:var(--dimmer);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcount{font-size:28px;font-weight:900;min-width:36px;text-align:center;font-variant-numeric:tabular-nums}
+.prow .btn{min-width:104px}
+/* sync */
+#syncbtn{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:none;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:700;color:var(--dim)}
+#syncbtn i{width:9px;height:9px;border-radius:50%;background:var(--dimmer)}
+#syncbtn.ok i{background:var(--fg)}
+#syncbtn.busy i{background:var(--fg);animation:pulse 1s infinite}
+#syncbtn.err i{background:none;border:2px solid var(--fg);width:10px;height:10px}
+#syncbtn.err{color:var(--fg)}
+@keyframes pulse{50%{opacity:.25}}
+header nav{margin-left:0}
+.syncf{display:flex;flex-direction:column;gap:12px}
+.syncf label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--dim);font-weight:700}
+.syncf input{font-size:16px}
+
 /* ---------- phone ---------- */
 @media (max-width:600px){
   header{padding:10px 12px;gap:8px}
@@ -198,6 +237,15 @@ label.ck{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px
   .barc{display:none}
   .start h1{font-size:34px}
   .item{gap:2px}
+  .brand img{display:none}
+  #syncbtn{padding:8px}
+  #syncbtn span{display:none}
+  nav button{padding:8px 10px;font-size:13px}
+  .gfields{min-width:0;flex:1 1 100%;order:5}
+  .gfields input[type=date]{flex:none;width:150px}
+  .golive{width:100%;order:6}
+  .prow{padding:8px 8px 8px 12px;gap:6px}
+  .prow .btn{min-width:0;padding:10px 12px}
   .ib{width:28px}
 }
 </style>
@@ -205,15 +253,20 @@ label.ck{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px
 <body>
 <header>
   <div class="brand"><img src="logo.png" alt="Clarence" style="height:38px;border-radius:6px"><span>Shift Points</span></div>
+  <button id="syncbtn" class="off" data-act="syncsettings"><i></i><span>Sync off</span></button>
   <nav>
-    <button data-act="view" data-v="setup">Setup</button>
     <button data-act="view" data-v="game">Game</button>
+    <button data-act="view" data-v="roster">Roster</button>
+    <button data-act="view" data-v="goals">Goals</button>
     <button data-act="view" data-v="stats">Stats</button>
+    <button data-act="view" data-v="potg">Trackers</button>
   </nav>
 </header>
 <main>
-  <section id="setup"></section>
   <section id="game"></section>
+  <section id="roster"></section>
+  <section id="goals"></section>
+  <section id="potg"></section>
   <section id="stats"></section>
 </main>
 <div id="sheet"></div>
@@ -221,15 +274,20 @@ label.ck{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px
 <div id="toast"><span id="toastMsg"></span><button data-act="undo">Undo</button></div>
 <input type="file" id="importFile" accept=".json,application/json" hidden>
 
+<script src="ops.js"></script>
 <script>
 const KEY = 'shiftpoints.v1';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = s => document.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const today = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
 const SCOPES = [['individual','Individual'],['group','Line / Group'],['team','Whole Team']];
 const PERIODS = ['1','2','3','OT'];
+const VIEWS = ['roster','goals','game','stats','potg'];
 const EMOJI = ['⭐','🔥','💪','🎯','🏒','🥅','🚀','🛡️','🔙','⏱️','🔄','📣','🏆','👏','🧠','👀','🤝','⚡','💨','🧱','🙌','🎉','🐎','❤️','✅','🔺','🧊','🚨','💯','🥇','👊','🌟','😤','🫡','🏃'];
 
+/* ---------------- DATA ---------------- */
 function seed(){
   const g = (name, scope, points, icon) => ({id:uid(), name, scope, points, icon});
   const players = [], groups = [];
@@ -241,72 +299,121 @@ function seed(){
     });
     groups.push({id:uid(), name:gname, members});
   });
-  return {
-    players, groups, games: [], currentGameId: null,
-    goals: [
-      g('Backchecked hard','individual',1,'🔙'),
-      g('Won a puck battle','individual',1,'💪'),
-      g('Tape-to-tape pass','individual',1,'🎯'),
-      g('Quick line change','individual',1,'⏱️'),
-      g('Clean breakout','group',2,'🚀'),
-      g('3 passes in O-zone','group',2,'🔺'),
-      g('Everyone back on D','group',2,'🛡️'),
-      g('Great bench energy','team',3,'📣'),
-      g('Won the period','team',3,'🏆'),
-    ]
-  };
+  return Object.assign(blankState(), { players, groups, goals: [
+    g('Backchecked hard','individual',1,'🔙'), g('Won a puck battle','individual',1,'💪'),
+    g('Tape-to-tape pass','individual',1,'🎯'), g('Quick line change','individual',1,'⏱️'),
+    g('Clean breakout','group',2,'🚀'), g('3 passes in O-zone','group',2,'🔺'), g('Everyone back on D','group',2,'🛡️'),
+    g('Great bench energy','team',3,'📣'), g('Won the period','team',3,'🏆'),
+  ]});
 }
+const jget = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch(e){ return d; } };
 function load(){
-  try { const d = JSON.parse(localStorage.getItem(KEY));
-    if (d && d.players){
-      if (!d.renamedLines){ d.groups.forEach(g => { if (['Red','Blue','White'].includes(g.name)) g.name += ' Line'; }); d.renamedLines = true; }
-      return d;
-    } } catch(e){}
-  return seed();
+  const d = jget(KEY, null);
+  if (!d || !d.players) return seed();
+  if (!d.renamedLines){ d.groups.forEach(g => { if (['Red','Blue','White'].includes(g.name)) g.name += ' Line'; }); d.renamedLines = true; }
+  d.potg = d.potg || []; d.dead = d.dead || {}; d.trackers = d.trackers || [];
+  return d;
 }
 let S = load();
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){ alert('Could not save: ' + e.message); } }
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 
-let UI = { view: localStorage.getItem('shiftpoints.view') || 'setup', tab: 'players', onIce: null, statsGame: 'all', share: false, sheet: null };
-let lastEvent = null, toastTimer = null;
+/* ---------------- SYNC STATE ---------------- */
+const SYNC_KEY = 'shiftpoints.sync', OUT_KEY = 'shiftpoints.outbox';
+let SY = Object.assign({ url:'', code:'', coach:'', since:0, device: uid() + uid() }, jget(SYNC_KEY, {}));
+let OUT = jget(OUT_KEY, []);
+let SYS = { busy:false, err:'' }, syncTimer = null;
+function saveSync(){ try { localStorage.setItem(SYNC_KEY, JSON.stringify(SY)); localStorage.setItem(OUT_KEY, JSON.stringify(OUT)); } catch(e){} }
+saveSync();
 
-const curGame = () => S.games.find(g => g.id === S.currentGameId && !g.ended);
+// Every change goes through here: apply locally right away, queue it for the Sheet.
+function commit(op){
+  op.ts = Date.now(); applyOp(S, op); save();
+  if (SY.url){ OUT.push(op); saveSync(); scheduleSync(); }
+  updateSyncDot();
+}
+
+let UI = { view: localStorage.getItem('shiftpoints.view') || 'game', gameId: localStorage.getItem('shiftpoints.game') || null,
+           mode: 'prep', statsGame: 'all', share: false, sheet: null, newScope: 'individual', potgGame: null, tracker: 'potg', trSort: 'roster' };
+if (!VIEWS.includes(UI.view)) UI.view = 'game';
+let lastUndo = null, toastTimer = null, pendingRender = false;
+
+/* ---------------- HELPERS ---------------- */
 const player = id => S.players.find(p => p.id === id);
 const pname = p => p ? (p.number ? '#' + p.number + ' ' : '') + p.name : '?';
+const game = () => S.games.find(g => g.id === UI.gameId);
+const gPresent = g => g.present || S.players.map(p => p.id);
+const gLines = g => g.lines || S.groups;
+const gGoalIds = g => g.goalIds || S.goals.map(x => x.id);
+const gMeta = (g, ch) => Object.assign({ id:g.id, name:g.name, date:g.date, period:g.period || '1', ended:!!g.ended,
+  present:gPresent(g).slice(), lines:clone(gLines(g)), goalIds:gGoalIds(g).slice() }, ch || {});
+const setGame = (g, ch) => commit({ t:'game', v:gMeta(g, ch) });
+const gameStatus = g => g.ended ? 'Final' : g.events.length ? 'Live' : 'Upcoming';
+const fmtDate = d => { if (!d) return ''; const x = new Date(d + 'T12:00'); return isNaN(x) ? d : x.toLocaleDateString([], {month:'short', day:'numeric'}); };
+function openGame(id, mode){ UI.gameId = id; UI.mode = mode || 'prep'; localStorage.setItem('shiftpoints.game', id || ''); }
 
 /* ---------------- VIEW SWITCH ---------------- */
 function setView(v){
   UI.view = v; localStorage.setItem('shiftpoints.view', v);
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   document.querySelectorAll('main section').forEach(s => s.classList.toggle('on', s.id === v));
-  render();
+  render(); window.scrollTo(0, 0);
 }
-function render(){ ({setup:renderSetup, game:renderGame, stats:renderStats})[UI.view](); }
+function render(){
+  pendingRender = false;
+  ({roster:renderRoster, goals:renderGoals, game:renderGame, stats:renderStats, potg:renderTrackers})[UI.view]();
+  if (UI.sheet) renderSheet();
+}
+function refresh(){ // after remote changes arrive: don't yank the page out from under someone typing
+  const a = document.activeElement;
+  if (a && a.matches('input,textarea,select') && a.type !== 'checkbox') pendingRender = true; else render();
+}
 
-/* ---------------- SETUP ---------------- */
-function moveBtns(coll, id){
-  return `<button class="ib" data-act="move" data-coll="${coll}" data-id="${id}" data-dir="-1" title="Move up">▲</button>
-          <button class="ib" data-act="move" data-coll="${coll}" data-id="${id}" data-dir="1" title="Move down">▼</button>
-          <button class="ib del" data-act="del" data-coll="${coll}" data-id="${id}" title="Delete">✕</button>`;
+/* ---------------- ROSTER ---------------- */
+function moveBtns(act, id, extra){
+  return `<button class="ib" data-act="${act}" data-id="${id}" data-dir="-1" ${extra||''} title="Move up">▲</button>
+          <button class="ib" data-act="${act}" data-id="${id}" data-dir="1" ${extra||''} title="Move down">▼</button>`;
 }
-function renderSetup(){
+const delBtn = (act, id, extra) => `<button class="ib del" data-act="${act}" data-id="${id}" ${extra||''} title="Delete">✕</button>`;
+function lineCards(lines, players, mode){ // mode 'def' = default lines (Roster tab), 'game' = this game's lines
+  return lines.map(l => `
+    <div class="gcard">
+      <div class="row">
+        <input class="grow" style="background:transparent;border-color:transparent;font-weight:800" data-${mode === 'def' ? `edit="groups:${l.id}:name"` : `gline="${l.id}"`} value="${esc(l.name)}">
+        ${moveBtns(mode === 'def' ? 'move' : 'glmove', l.id, mode === 'def' ? 'data-coll="groups"' : '')}
+        ${delBtn(mode === 'def' ? 'del' : 'gldel', l.id, mode === 'def' ? 'data-coll="groups"' : '')}
+      </div>
+      <div class="chips">${players.map(p => `<button class="chip ${l.members.includes(p.id) ? 'on' : ''}" data-act="${mode === 'def' ? 'member' : 'glmember'}" data-g="${l.id}" data-p="${p.id}">${esc(pname(p))}</button>`).join('') || '<span class="breakdown">No players</span>'}</div>
+    </div>`).join('') || '<div class="empty">No lines yet</div>';
+}
+function renderRoster(){
   const players = S.players.map(p => `
     <div class="item">
       <input class="num" data-edit="players:${p.id}:number" value="${esc(p.number)}" placeholder="#" inputmode="numeric">
       <input class="grow" data-edit="players:${p.id}:name" value="${esc(p.name)}">
-      ${moveBtns('players', p.id)}
+      ${moveBtns('move', p.id, 'data-coll="players"')}${delBtn('del', p.id, 'data-coll="players"')}
     </div>`).join('') || '<div class="empty">No players yet</div>';
+  $('#roster').innerHTML = `
+  <div class="grid3 two">
+    <div class="panel">
+      <h2>Roster</h2><p class="sub">Everyone on the team. Type a number and name, press <kbd>Enter</kbd>, e.g. “12 Ava”.</p>
+      <form data-form="player" class="row"><input class="grow" name="n" placeholder="12 Ava Smith" autocomplete="off"><button class="btn primary">Add</button></form>
+      <details><summary>Paste a whole list</summary>
+        <textarea id="bulk" placeholder="One player per line&#10;12 Ava Smith&#10;7 Leo Park"></textarea>
+        <button class="btn" data-act="bulk" style="margin-top:8px">Add all</button>
+      </details>
+      <div class="list">${players}</div>
+    </div>
+    <div class="panel">
+      <h2>Default Lines</h2><p class="sub">The starting point for a new game. Change lines for a specific game in the Game tab.</p>
+      <form data-form="group" class="row"><input class="grow" name="n" placeholder="Line 1, D-pair 2, PP unit…" autocomplete="off"><button class="btn primary">Add</button></form>
+      <div class="list">${lineCards(S.groups, S.players, 'def')}</div>
+    </div>
+  </div>`;
+}
 
-  const groups = S.groups.map(g => `
-    <div class="gcard">
-      <div class="row">
-        <input class="grow" style="background:transparent;border-color:transparent;font-weight:800" data-edit="groups:${g.id}:name" value="${esc(g.name)}">
-        ${moveBtns('groups', g.id)}
-      </div>
-      <div class="chips">${S.players.map(p => `<button class="chip ${g.members.includes(p.id) ? 'on' : ''}" data-act="member" data-g="${g.id}" data-p="${p.id}">${esc(pname(p))}</button>`).join('') || '<span class="breakdown">Add players first</span>'}</div>
-    </div>`).join('') || '<div class="empty">No lines yet</div>';
-
+/* ---------------- GOALS ---------------- */
+function renderGoals(){
   const goals = SCOPES.map(([sc, label]) => {
     const list = S.goals.filter(g => g.scope === sc);
     return `<div class="scopehead">${label}</div>` + (list.map(g => `
@@ -316,115 +423,158 @@ function renderSetup(){
         <span style="width:44px"></span>
         <input type="number" class="num" data-edit="goals:${g.id}:points" value="${g.points}" title="Points"><span class="breakdown">pts</span>
         <select data-edit="goals:${g.id}:scope" style="flex:1;padding:6px 8px;font-size:13px" title="Who earns it">${SCOPES.map(([v,l]) => `<option value="${v}" ${v===sc?'selected':''}>${l}</option>`).join('')}</select>
-        ${moveBtns('goals', g.id)}
+        ${moveBtns('move', g.id, 'data-coll="goals"')}${delBtn('del', g.id, 'data-coll="goals"')}
       </div>`).join('') || '<div class="empty" style="padding:8px">None</div>');
   }).join('');
-
-  $('#setup').innerHTML = `
-  <div class="grid3">
+  $('#goals').innerHTML = `
+  <div class="grid3 two">
     <div class="panel">
-      <h2>Roster</h2><p class="sub">Type a number and name, press <kbd>Enter</kbd>. e.g. “12 Ava”</p>
-      <form data-form="player" class="row"><input class="grow" name="n" placeholder="12 Ava Smith" autocomplete="off"><button class="btn primary">Add</button></form>
-      <details><summary>Paste a whole list</summary>
-        <textarea id="bulk" placeholder="One player per line&#10;12 Ava Smith&#10;7 Leo Park"></textarea>
-        <button class="btn" data-act="bulk" style="margin-top:8px">Add all</button>
-      </details>
-      <div class="list">${players}</div>
-    </div>
-    <div class="panel">
-      <h2>Lines & Groups</h2><p class="sub">Tap players to put them on a line. A player can be in more than one group.</p>
-      <form data-form="group" class="row"><input class="grow" name="n" placeholder="Line 1, D-pair 2, PP unit…" autocomplete="off"><button class="btn primary">Add</button></form>
-      <div class="list">${groups}</div>
-    </div>
-    <div class="panel">
-      <h2>Shift Goals</h2><p class="sub">What earns points, who earns it, and how many.</p>
-      <form data-form="goal" style="display:flex;flex-direction:column;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px">
+      <h2>New Goal</h2><p class="sub">Every goal the team uses. Pick which ones are in play for each game in the Game tab.</p>
+      <form data-form="goal" style="display:flex;flex-direction:column;gap:10px">
         <div class="row">
           <button type="button" class="emo" data-act="pick" data-target="new" id="newIcon">⭐</button>
           <input type="hidden" name="i" value="⭐">
-          <input class="grow" name="n" placeholder="New goal, e.g. “Stopped at the net”" autocomplete="off">
+          <input class="grow" name="n" placeholder="e.g. “Stopped at the net”" autocomplete="off">
         </div>
-        <div class="segs">${SCOPES.map(([v,l],k) => `<button type="button" class="${v===(UI.newScope||'individual')?'on':''}" data-act="newscope" data-s="${v}">${l}</button>`).join('')}</div>
-        <input type="hidden" name="s" value="${UI.newScope||'individual'}">
+        <div class="segs">${SCOPES.map(([v,l]) => `<button type="button" class="${v===UI.newScope?'on':''}" data-act="newscope" data-s="${v}">${l}</button>`).join('')}</div>
+        <input type="hidden" name="s" value="${UI.newScope}">
         <div class="row">
           <div class="stepper"><button type="button" data-act="newpts" data-d="-1">−</button><span><b id="newPts">1</b><small>PTS</small></span><button type="button" data-act="newpts" data-d="1">+</button></div>
           <input type="hidden" name="p" value="1">
           <button class="btn primary" style="flex:1">Add Goal</button>
         </div>
       </form>
-      <div class="list" style="margin-top:0">${goals}</div>
+    </div>
+    <div class="panel"><h2>All Goals</h2><div class="list" style="margin-top:0">${goals}</div></div>
+  </div>`;
+}
+
+/* ---------------- GAME: LIST ---------------- */
+function evPoints(evts, type, id){ return evts.filter(e => e.targetType === type && (type === 'team' || e.targetId === id)).reduce((a,e) => a + e.points, 0); }
+function renderGame(){
+  const g = game();
+  if (!g) return renderGameList();
+  if (UI.mode === 'live' && !g.ended) return renderLive(g);
+  renderPrep(g);
+}
+function renderGameList(){
+  const games = [...S.games].sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+  $('#game').innerHTML = `
+  <div class="grid3 two">
+    <div class="panel">
+      <img src="logo.png" alt="Clarence" style="width:160px;border-radius:10px;margin-bottom:12px">
+      <h2>New Game</h2><p class="sub">Starts with the lines and goals from your last game. You can change them before puck drop.</p>
+      <form data-form="newgame" style="display:flex;flex-direction:column;gap:10px">
+        <input name="o" placeholder="Opponent (e.g. vs Sabres)" autocomplete="off" style="padding:14px;font-size:17px">
+        <input name="d" type="date" value="${today()}" style="padding:14px;font-size:17px">
+        <button class="btn primary" style="padding:16px;font-size:17px">Create Game</button>
+      </form>
+    </div>
+    <div class="panel">
+      <h2>Games</h2><p class="sub">${games.length} game${games.length === 1 ? '' : 's'}</p>
+      <div class="list">${games.map(x => `
+        <button class="gitem" data-act="opengame" data-id="${x.id}">
+          <span class="gd">${esc(fmtDate(x.date))}</span>
+          <span class="gname">${esc(x.name)}<small>${gPresent(x).length} players · ${x.events.reduce((a,e)=>a+e.points,0)} pts</small></span>
+          <span class="status s-${gameStatus(x).toLowerCase()}">${gameStatus(x)}</span>
+        </button>`).join('') || '<div class="empty">No games yet</div>'}</div>
     </div>
   </div>`;
 }
 
-/* ---------------- GAME ---------------- */
-function evPoints(evts, type, id){ return evts.filter(e => e.targetType === type && (type === 'team' || e.targetId === id)).reduce((a,e) => a + e.points, 0); }
-function renderGame(){
-  const g = curGame();
-  if (!g){
-    const today = new Date().toISOString().slice(0,10);
-    $('#game').innerHTML = `
-      <div class="start">
-        <img src="logo.png" alt="Clarence" style="width:220px;border-radius:12px;margin-bottom:20px">
-        <h1>Game time.</h1>
-        <p>${S.players.length} players · ${S.groups.length} lines · ${S.goals.length} goals</p>
-        <form data-form="game" class="f">
-          <input name="o" placeholder="Opponent (e.g. vs Sabres)" autocomplete="off">
-          <input name="d" type="date" value="${today}">
-          <button class="btn primary">Start Game</button>
-        </form>
-      </div>`;
-    return;
-  }
-  const evts = g.events;
+/* ---------------- GAME: LINEUP (per game) ---------------- */
+function renderPrep(g){
+  const present = new Set(gPresent(g));
+  const here = S.players.filter(p => present.has(p.id));
+  const lines = gLines(g).map(l => Object.assign({}, l, { members: l.members.filter(m => present.has(m)) }));
+  const ids = new Set(gGoalIds(g));
+  const goalChips = SCOPES.map(([sc, label]) => {
+    const list = S.goals.filter(x => x.scope === sc);
+    return list.length ? `<div class="scopehead">${label}</div><div class="chips" style="padding:4px 0">${list.map(x =>
+      `<button class="chip ${ids.has(x.id) ? 'on' : ''}" data-act="ggoal" data-id="${x.id}">${esc(x.icon || '⭐')} ${esc(x.name)} · ${x.points}</button>`).join('')}</div>` : '';
+  }).join('');
+  $('#game').innerHTML = `
+    <div class="bar">
+      <button class="btn" data-act="games">‹ Games</button>
+      <div class="gfields">
+        <input data-gfield="name" value="${esc(g.name)}" style="font-weight:800;font-size:18px">
+        <input type="date" data-gfield="date" value="${esc(g.date)}">
+      </div>
+      <span class="status s-${gameStatus(g).toLowerCase()}">${gameStatus(g)}</span>
+      <button class="btn primary golive" data-act="golive">${g.ended ? 'Reopen Game' : 'Go Live ▸'}</button>
+    </div>
+    <div class="grid3">
+      <div class="panel">
+        <h2>Who's Here</h2><p class="sub">${here.length} of ${S.players.length} players. Tap to mark someone out.</p>
+        <div class="row" style="margin-bottom:8px"><button class="btn" data-act="allhere" data-v="1">Everyone</button><button class="btn" data-act="allhere" data-v="0">Nobody</button></div>
+        <div class="chips big">${S.players.map(p => `<button class="chip ${present.has(p.id) ? 'on' : ''}" data-act="here" data-p="${p.id}">${esc(pname(p))}</button>`).join('')}</div>
+      </div>
+      <div class="panel">
+        <h2>Lines This Game</h2><p class="sub">Only players who are here are shown.</p>
+        <form data-form="gline" class="row"><input class="grow" name="n" placeholder="Add a line…" autocomplete="off"><button class="btn primary">Add</button></form>
+        <button class="btn" data-act="resetlines" style="margin-top:8px;width:100%">Reset to default lines</button>
+        <div class="list">${lineCards(lines, here, 'game')}</div>
+      </div>
+      <div class="panel">
+        <h2>Goals This Game</h2><p class="sub">${ids.size} in play. Add new goals in the Goals tab.</p>
+        ${goalChips || '<div class="empty">No goals yet</div>'}
+      </div>
+    </div>
+    <div style="margin-top:24px;text-align:center"><button class="btn" data-act="delgame" data-id="${g.id}" style="color:var(--dim)">Delete this game</button></div>`;
+}
+
+/* ---------------- GAME: LIVE ---------------- */
+function renderLive(g){
+  const evts = g.events, present = new Set(gPresent(g));
   const nowCount = (type, id) => evts.filter(e => e.period === g.period && e.targetType === type && (type === 'team' || e.targetId === id)).length;
   const badge = n => n ? `<span class="now">+${n}</span>` : '';
   const pbtn = p => `<button class="pb" data-act="open" data-type="player" data-id="${p.id}">
       <span class="pn">${p.number ? `<small>#${esc(p.number)}</small>` : ''}${esc(p.name)}</span>
       <span class="pp">${evPoints(evts,'player',p.id)}</span>${badge(nowCount('player', p.id))}</button>`;
-  const grouped = new Set(S.groups.flatMap(gr => gr.members));
-  const others = S.players.filter(p => !grouped.has(p.id));
-
-  const rows = S.groups.map(gr => `
+  const lines = gLines(g);
+  const inLine = new Set(lines.flatMap(l => l.members));
+  const others = S.players.filter(p => present.has(p.id) && !inLine.has(p.id));
+  const rows = lines.map(l => {
+    const ps = l.members.filter(m => present.has(m)).map(player).filter(Boolean);
+    return `
     <div class="lrow">
-      <button class="lhead" data-act="open" data-type="group" data-id="${gr.id}">
-        <span class="ln">${esc(gr.name)}</span>
-        <span class="lp">${evPoints(evts,'group',gr.id)} <small>PTS</small></span>
-        <span class="lg">Line goals ›</span>${badge(nowCount('group', gr.id))}
+      <button class="lhead" data-act="open" data-type="group" data-id="${l.id}">
+        <span class="ln">${esc(l.name)}</span>
+        <span class="lp">${evPoints(evts,'group',l.id)} <small>PTS</small></span>
+        <span class="lg">Line goals ›</span>${badge(nowCount('group', l.id))}
       </button>
-      <div class="lplayers">${gr.members.map(id => player(id)).filter(Boolean).map(pbtn).join('') || '<span class="breakdown">No players</span>'}</div>
-    </div>`).join('') + (others.length ? `
+      <div class="lplayers">${ps.map(pbtn).join('') || '<span class="breakdown">Nobody here</span>'}</div>
+    </div>`; }).join('') + (others.length ? `
     <div class="lrow"><div class="lhead static"><span class="ln">Other</span></div><div class="lplayers">${others.map(pbtn).join('')}</div></div>` : '');
-
-  const body = `
-    <button class="teamrow" data-act="open" data-type="team" data-id="team">
-      <span class="ln">Whole Team</span><span class="lp">${evPoints(evts,'team')} <small>PTS</small></span><span class="lg">Team goals ›</span>${badge(nowCount('team'))}
-    </button>
-    ${rows || '<div class="empty">Add players and lines in Setup</div>'}`;
 
   $('#game').innerHTML = `
     <div class="bar">
-      <div class="vs"><small>${esc(g.date)}</small>${esc(g.name)}</div>
+      <button class="btn" data-act="prep">‹ Lineup</button>
+      <div class="vs"><small>${esc(fmtDate(g.date))}</small>${esc(g.name)}</div>
       <div class="seg">${PERIODS.map(p => `<button class="${g.period===p?'on':''}" data-act="period" data-p="${p}">${p==='OT'?'OT':'P'+p}</button>`).join('')}</div>
       <button class="btn" data-act="endgame" style="height:56px">End Game</button>
     </div>
     <div class="gamegrid">
-      <div>${body}</div>
+      <div>
+        <button class="teamrow" data-act="open" data-type="team" data-id="team">
+          <span class="ln">Whole Team</span><span class="lp">${evPoints(evts,'team')} <small>PTS</small></span><span class="lg">Team goals ›</span>${badge(nowCount('team'))}
+        </button>
+        ${rows || '<div class="empty">Nobody is marked as here. Tap ‹ Lineup.</div>'}
+      </div>
       <div class="panel">
         <h2>This game</h2>
         <p class="sub">${evts.length} awards · ${evts.reduce((a,e)=>a+e.points,0)} points</p>
-        <div class="feed">${[...evts].reverse().slice(0,40).map(e => `
+        <div class="feed">${[...evts].sort((a,b) => b.ts - a.ts).slice(0,40).map(e => `
           <div class="fe"><span class="p">+${e.points}</span>
-            <span class="t">${esc(e.targetName)} — ${esc(e.goalName)}<small>${e.period==='OT'?'OT':'P'+e.period} · ${new Date(e.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}</small></span>
+            <span class="t">${esc(e.targetName)} — ${esc(e.goalName)}<small>${e.period==='OT'?'OT':'P'+e.period} · ${new Date(e.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}${e.coach ? ' · ' + esc(e.coach) : ''}</small></span>
             <button class="ib del" data-act="delev" data-id="${e.id}">✕</button></div>`).join('') || '<div class="empty">Tap a player, line, or team to award points</div>'}</div>
       </div>
     </div>`;
-  if (UI.sheet) renderSheet();
 }
-function goalButtons(type, id){
-  const g = curGame(); const scope = {player:'individual', group:'group', team:'team'}[type];
-  const goals = S.goals.filter(x => x.scope === scope);
-  if (!goals.length) return `<div class="empty">No ${scope} goals — add some in Setup</div>`;
+function goalButtons(g, type, id){
+  const scope = {player:'individual', group:'group', team:'team'}[type], ids = new Set(gGoalIds(g));
+  const goals = S.goals.filter(x => x.scope === scope && ids.has(x.id));
+  if (!goals.length) return `<div class="empty">No ${scope === 'group' ? 'line' : scope} goals for this game. Turn some on under ‹ Lineup.</div>`;
   return `<div class="goalbtns">${goals.map(x => {
     const c = g.events.filter(e => e.period === g.period && e.goalId === x.id && e.targetType === type && (type==='team' || e.targetId === id)).length;
     return `<button class="gb" data-act="award" data-goal="${x.id}" data-type="${type}" data-id="${id}">
@@ -433,37 +583,42 @@ function goalButtons(type, id){
   }).join('')}</div>`;
 }
 function renderSheet(){
-  const {type, id} = UI.sheet; const el = $('#sheet');
-  let head;
-  if (type === 'player'){ const p = player(id); head = `<div class="jn">${esc(p.number || '')}</div><div><h3>${esc(p.name)}</h3><small>Individual goals</small></div>`; }
-  else if (type === 'group'){ const gr = S.groups.find(x => x.id === id); head = `<div><h3>${esc(gr.name)}</h3><small>${gr.members.map(m => esc(pname(player(m)))).join(' · ')}</small></div>`; }
-  else head = `<div><h3>Whole Team</h3><small>Team goals</small></div>`;
-  el.innerHTML = `<div class="s"><div class="sh">${head}<button class="btn primary" data-act="close">Done</button></div>${goalButtons(type, id)}</div>`;
+  const el = $('#sheet'), { type, id } = UI.sheet;
+  let head, body;
+  if (type === 'sync'){ head = `<div><h3>Team Sync</h3><small>Share data with other coaches through a Google Sheet</small></div>`; body = syncForm(); }
+  else {
+    const g = game();
+    if (!g || UI.view !== 'game' || UI.mode !== 'live') return ACT.close();
+    if (type === 'player'){ const p = player(id); if (!p) return ACT.close(); head = `<div class="jn">${esc(p.number || '')}</div><div><h3>${esc(p.name)}</h3><small>Individual goals</small></div>`; }
+    else if (type === 'group'){ const l = gLines(g).find(x => x.id === id); if (!l) return ACT.close();
+      head = `<div><h3>${esc(l.name)}</h3><small>${l.members.filter(m => gPresent(g).includes(m)).map(m => esc(pname(player(m)))).join(' · ')}</small></div>`; }
+    else head = `<div><h3>Whole Team</h3><small>Team goals</small></div>`;
+    body = goalButtons(g, type, id);
+  }
+  el.innerHTML = `<div class="s"><div class="sh">${head}<button class="btn primary" data-act="close">Done</button></div>${body}</div>`;
   el.classList.add('on');
 }
 function award(goalId, type, id){
-  const g = curGame(), goal = S.goals.find(x => x.id === goalId);
+  const g = game(), goal = S.goals.find(x => x.id === goalId);
   let targetName, members;
   if (type === 'player'){ targetName = pname(player(id)); members = [id]; }
-  else if (type === 'group'){ const gr = S.groups.find(x => x.id === id); targetName = gr.name; members = [...gr.members]; }
-  else { targetName = 'Team'; members = S.players.map(p => p.id); }
-  const e = { id: uid(), ts: Date.now(), period: g.period, goalId, goalName: goal.name, points: Number(goal.points) || 0,
-              targetType: type, targetId: type === 'team' ? 'team' : id, targetName, members };
-  g.events.push(e); save(); lastEvent = e;
-  toast(`+${e.points} ${targetName} · ${goal.icon || ''} ${goal.name}`);
-  renderGame();
+  else if (type === 'group'){ const l = gLines(g).find(x => x.id === id); targetName = l.name; members = l.members.filter(m => gPresent(g).includes(m)); }
+  else { targetName = 'Team'; members = gPresent(g).slice(); }
+  const e = { id: uid(), ts: Date.now(), period: g.period || '1', goalId, goalName: goal.name, points: Number(goal.points) || 0,
+              targetType: type, targetId: type === 'team' ? 'team' : id, targetName, members, coach: SY.coach || '' };
+  commit({ t:'ev', g:g.id, v:e }); lastUndo = { t:'evdel', id:e.id };
+  toast(`+${e.points} ${targetName} · ${goal.icon || ''} ${goal.name}`, true);
+  render();
   const b = document.querySelector(`.gb[data-goal="${goalId}"]`); if (b){ b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash'); }
 }
-function toast(msg){
+function toast(msg, undo){
   $('#toastMsg').textContent = msg; $('#toast').classList.add('on');
+  $('#toast button').style.display = undo ? '' : 'none';
   clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('on'), 3500);
 }
 
 /* ---------------- STATS ---------------- */
-function statEvents(){
-  const games = UI.statsGame === 'all' ? S.games : S.games.filter(g => g.id === UI.statsGame);
-  return games.flatMap(g => g.events);
-}
+function statGames(){ return UI.statsGame === 'all' ? S.games : S.games.filter(g => g.id === UI.statsGame); }
 function table(rows, label){
   const max = Math.max(1, ...rows.map(r => r.pts));
   return `<table><tr><th></th><th>${label}</th><th class="barc"></th><th class="r">Pts</th></tr>${rows.map((r,i) => `
@@ -472,38 +627,162 @@ function table(rows, label){
 }
 function renderStats(){
   if (UI.statsGame !== 'all' && !S.games.find(g => g.id === UI.statsGame)) UI.statsGame = 'all';
-  const ev = statEvents();
+  const ev = statGames().flatMap(g => g.events);
+  const sum = l => l.reduce((a,e) => a + e.points, 0);
   const detail = list => { const m = {}; list.forEach(e => m[e.goalName] = (m[e.goalName]||0) + 1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `${k} ×${v}`).join(', '); };
   const pRows = S.players.map(p => {
     const own = ev.filter(e => e.targetType === 'player' && e.targetId === p.id);
-    const shared = UI.share ? ev.filter(e => e.targetType !== 'player' && e.members.includes(p.id)) : [];
-    return { name: pname(p), pts: [...own, ...shared].reduce((a,e)=>a+e.points,0), detail: detail(own) };
+    const shared = UI.share ? ev.filter(e => e.targetType !== 'player' && (e.members || []).includes(p.id)) : [];
+    return { name: pname(p), pts: sum(own) + sum(shared), detail: detail(own) };
   }).sort((a,b) => b.pts - a.pts);
-  const gRows = S.groups.map(gr => { const l = ev.filter(e => e.targetType === 'group' && e.targetId === gr.id); return { name: gr.name, pts: l.reduce((a,e)=>a+e.points,0), detail: detail(l) }; }).sort((a,b) => b.pts - a.pts);
+  const byLine = {}; ev.filter(e => e.targetType === 'group').forEach(e => (byLine[e.targetName] = byLine[e.targetName] || []).push(e));
+  const gRows = Object.entries(byLine).map(([name, l]) => ({ name, pts: sum(l), detail: detail(l) })).sort((a,b) => b.pts - a.pts);
   const team = ev.filter(e => e.targetType === 'team');
-  const goalRows = S.goals.map(x => { const l = ev.filter(e => e.goalId === x.id); return { name: `${x.icon||''} ${x.name}`, pts: l.reduce((a,e)=>a+e.points,0), detail: `${l.length} times` }; }).sort((a,b) => b.pts - a.pts);
-
+  const goalRows = S.goals.map(x => { const l = ev.filter(e => e.goalId === x.id); return { name: `${x.icon||''} ${x.name}`, pts: sum(l), detail: `${l.length} times` }; }).sort((a,b) => b.pts - a.pts);
   $('#stats').innerHTML = `
     <div class="toolbar">
       <select data-act-change="statsgame">
         <option value="all">All games (${S.games.length})</option>
-        ${[...S.games].reverse().map(g => `<option value="${g.id}" ${UI.statsGame===g.id?'selected':''}>${esc(g.date)} — ${esc(g.name)}${g.ended?'':' (live)'}</option>`).join('')}
+        ${[...S.games].sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(g => `<option value="${g.id}" ${UI.statsGame===g.id?'selected':''}>${esc(fmtDate(g.date))} — ${esc(g.name)} (${gameStatus(g)})</option>`).join('')}
       </select>
       <label class="ck"><input type="checkbox" data-act-change="share" ${UI.share?'checked':''}> Count line & team points toward each player</label>
       <span style="flex:1"></span>
       <button class="btn" data-act="csv">Export CSV</button>
       <button class="btn" data-act="backup">Save Backup</button>
       <button class="btn" data-act="import">Restore Backup</button>
-      ${UI.statsGame !== 'all' ? `<button class="btn" data-act="delgame">Delete Game</button>` : ''}
     </div>
     <div class="grid3">
       <div class="panel"><h2>Players</h2>${pRows.length ? table(pRows, 'Player') : '<div class="empty">No players</div>'}</div>
       <div style="display:flex;flex-direction:column;gap:16px">
-        <div class="panel"><h2>Team</h2><div class="bigstat">${team.reduce((a,e)=>a+e.points,0)}</div><div class="breakdown" style="margin-top:6px">${esc(detail(team)) || 'No team awards yet'}</div></div>
-        <div class="panel"><h2>Lines</h2>${gRows.length ? table(gRows, 'Line') : '<div class="empty">No lines</div>'}</div>
+        <div class="panel"><h2>Team</h2><div class="bigstat">${sum(team)}</div><div class="breakdown" style="margin-top:6px">${esc(detail(team)) || 'No team awards yet'}</div></div>
+        <div class="panel"><h2>Lines</h2>${gRows.length ? table(gRows, 'Line') : '<div class="empty">No line awards yet</div>'}</div>
       </div>
       <div class="panel"><h2>Goals</h2>${table(goalRows, 'Goal')}</div>
     </div>`;
+}
+
+/* ---------------- TRACKERS (across games) ---------------- */
+const trackers = () => S.trackers.length ? S.trackers : DEFAULT_TRACKERS;
+const marksFor = tid => S.potg.filter(x => (x.trackerId || 'potg') === tid);
+function ensureTrackers(){ if (!S.trackers || !S.trackers.length) DEFAULT_TRACKERS.forEach(v => commit({ t:'upsert', c:'trackers', v:clone(v) })); }
+function renderTrackers(){
+  const games = [...S.games].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  if (UI.potgGame === null || (UI.potgGame && !S.games.find(g => g.id === UI.potgGame))) UI.potgGame = (game() || games[0] || {}).id || '';
+  if (!trackers().find(t => t.id === UI.tracker)) UI.tracker = trackers()[0].id;
+  const tr = trackers().find(t => t.id === UI.tracker), marks = marksFor(tr.id);
+  const sel = S.games.find(g => g.id === UI.potgGame);
+  const winners = new Set(sel ? marks.filter(x => x.gameId === sel.id).map(x => x.playerId) : []);
+  const here = sel ? new Set(gPresent(sel)) : null;
+  let ps = S.players.map((p, i) => ({ p, i, list: marks.filter(x => x.playerId === p.id).sort((a,b) => (a.date||'').localeCompare(b.date||'')) }));
+  if (UI.trSort === 'fewest') ps.sort((a,b) => a.list.length - b.list.length || a.i - b.i);
+  if (UI.trSort === 'most') ps.sort((a,b) => b.list.length - a.list.length || a.i - b.i);
+  const rows = ps.map(({ p, list }) => {
+    const win = winners.has(p.id), out = here && !here.has(p.id);
+    return `<div class="prow ${win ? 'win' : ''} ${out ? 'out' : ''}">
+      <div class="pinfo"><b>${esc(pname(p))}</b>${out ? ' <span class="breakdown">not here</span>' : ''}<small>${list.map(x => esc(x.gameName ? `${fmtDate(x.date)} ${x.gameName}` : fmtDate(x.date))).join(' · ') || '—'}</small></div>
+      <div class="pcount">${list.length}</div>
+      ${list.length ? `<button class="ib" data-act="potgminus" data-p="${p.id}" title="Remove one">−</button>` : '<span style="width:32px"></span>'}
+      <button class="btn ${win ? '' : 'primary'}" data-act="potgplus" data-p="${p.id}">${win ? '✓ Done' : esc(tr.icon || '✓') + ' Mark'}</button>
+    </div>`;
+  }).join('');
+  $('#potg').innerHTML = `
+    <div style="max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+      <div class="trtabs">${trackers().map(t => `<button class="${t.id === tr.id ? 'on' : ''}" data-act="tracker" data-id="${t.id}">${esc(t.icon || '✓')} ${esc(t.name)}</button>`).join('')}
+        <button data-act="trnew">＋ New</button></div>
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;flex-wrap:wrap">
+          <div><h2>${esc(tr.name)}</h2><p class="sub" style="margin:0">${marks.length} so far this season</p></div>
+          <div class="segs" style="flex:none">${[['roster','Roster'],['fewest','Fewest'],['most','Most']].map(([v,l]) => `<button class="${UI.trSort === v ? 'on' : ''}" data-act="trsort" data-v="${v}">${l}</button>`).join('')}</div>
+        </div>
+        <div class="toolbar" style="margin:14px 0 0"><span class="breakdown">For game</span>
+          <select data-act-change="potggame">
+            <option value="">No specific game (${fmtDate(today())})</option>
+            ${games.map(g => `<option value="${g.id}" ${UI.potgGame===g.id?'selected':''}>${esc(fmtDate(g.date))} — ${esc(g.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="list">${rows || '<div class="empty">Add players in the Roster tab</div>'}</div>
+        <details style="margin-top:16px"><summary>Rename or delete this tracker</summary>
+          <div class="row" style="margin-top:8px">
+            <button class="emo" data-act="pick" data-target="tr:${tr.id}">${esc(tr.icon || '✓')}</button>
+            <input class="grow" data-edit="trackers:${tr.id}:name" value="${esc(tr.name)}">
+            <button class="btn" data-act="del" data-coll="trackers" data-id="${tr.id}">Delete</button>
+          </div>
+        </details>
+      </div>
+    </div>`;
+}
+
+/* ---------------- SYNC ---------------- */
+function syncForm(){
+  const st = !SY.url ? 'Not connected. This device keeps everything to itself.'
+    : SYS.busy ? 'Syncing…' : SYS.err ? `Couldn't reach the Sheet: ${esc(SYS.err)}. ${OUT.length} change(s) will send when there's signal.`
+    : OUT.length ? `${OUT.length} change(s) waiting to send.` : 'All changes are in the Sheet.';
+  return `<div class="syncf">
+    <p class="sub" style="margin:0">${st}</p>
+    <label>Sheet web app URL<input id="syUrl" value="${esc(SY.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off"></label>
+    <label>Team code<input id="syCode" value="${esc(SY.code)}" placeholder="The code in the Sheet's script" autocomplete="off" autocapitalize="off"></label>
+    <label>Your name (shows on awards you give)<input id="syCoach" value="${esc(SY.coach)}" placeholder="Coach Kenny"></label>
+    <div class="row" style="flex-wrap:wrap">
+      ${SY.url ? `<button class="btn primary" data-act="syncsave">Save</button><button class="btn" data-act="syncnow">Sync now</button><button class="btn" data-act="syncoff">Disconnect</button>`
+               : `<button class="btn primary" data-act="syncconnect">Connect</button>`}
+    </div>
+    <p class="breakdown">Setup steps: <a href="https://github.com/kennyjoseph/shift-points#google-sheet-sync" target="_blank" style="color:var(--fg)">github.com/kennyjoseph/shift-points</a></p>
+  </div>`;
+}
+async function post(body){
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
+  try {
+    const r = await fetch(SY.url, { method:'POST', body:JSON.stringify(body), headers:{'Content-Type':'text/plain;charset=utf-8'}, signal:ctl.signal, redirect:'follow' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    let j; try { j = await r.json(); } catch(e){ throw new Error('Unexpected reply. Check the URL ends in /exec and access is "Anyone".'); }
+    if (j.error) throw new Error(j.error);
+    return j;
+  } catch(e){ throw e.name === 'AbortError' ? new Error('Timed out') : e; }
+  finally { clearTimeout(t); }
+}
+function scheduleSync(ms){ clearTimeout(syncTimer); syncTimer = setTimeout(sync, ms ?? 2000); }
+async function sync(){
+  if (!SY.url || SYS.busy) return;
+  if (!navigator.onLine){ SYS.err = 'No signal'; return updateSyncDot(); }
+  SYS.busy = true; updateSyncDot();
+  const sending = OUT.slice(0, 150);
+  try {
+    const res = await post({ code:SY.code, device:SY.device, coach:SY.coach, since:SY.since, ops:sending });
+    OUT = OUT.slice(sending.length);
+    const remote = res.ops.some(r => r.device !== SY.device);
+    if (res.ops.length){ res.ops.forEach(r => applyOp(S, r.op)); OUT.forEach(op => applyOp(S, op)); }
+    SY.since = res.seq; save(); saveSync(); SYS.err = '';
+    if (remote) refresh();
+  } catch(e){ SYS.err = e.message; }
+  SYS.busy = false; updateSyncDot();
+  if (UI.sheet && UI.sheet.type === 'sync') renderSheet();
+  if (OUT.length && !SYS.err) scheduleSync(300);
+}
+async function connect(){
+  SY.url = $('#syUrl').value.trim(); SY.code = $('#syCode').value.trim(); SY.coach = $('#syCoach').value.trim();
+  if (!/^(https:\/\/script\.google(usercontent)?\.com\/|http:\/\/localhost)/.test(SY.url)){ SY.url = ''; return alert('That doesn\'t look like a Google Apps Script web app URL.'); }
+  SYS.busy = true; renderSheet();
+  try {
+    const res = await post({ code:SY.code, device:SY.device, coach:SY.coach, since:0, ops:[] });
+    if (res.seq === 0){
+      OUT = snapshotOps(S); SY.since = 0; saveSync(); toast('Connected. Sending your data to the Sheet…');
+    } else {
+      if (!confirm(`The team Sheet already has data. Load it onto this device?\n\nThis replaces the roster, goals and games on this device. (Save a backup first if you need what's here.)`)){ SY.url = ''; saveSync(); return; }
+      S = blankState(); res.ops.forEach(r => applyOp(S, r.op)); SY.since = res.seq; OUT = []; save(); saveSync();
+      ensureTrackers(); toast('Loaded the team\'s data');
+    }
+  } catch(e){ SY.url = ''; saveSync(); alert('Could not connect: ' + e.message); }
+  finally { SYS.busy = false; SYS.err = ''; updateSyncDot(); render(); }
+  if (SY.url) sync();
+}
+function updateSyncDot(){
+  const b = $('#syncbtn'); let cls, txt;
+  if (!SY.url){ cls = 'off'; txt = 'Sync off'; }
+  else if (SYS.busy){ cls = 'busy'; txt = 'Syncing'; }
+  else if (SYS.err){ cls = 'err'; txt = OUT.length ? `${OUT.length} waiting` : 'Offline'; }
+  else if (OUT.length){ cls = 'busy'; txt = `${OUT.length} waiting`; }
+  else { cls = 'ok'; txt = 'Synced'; }
+  b.className = cls; b.querySelector('span').textContent = txt; b.title = SYS.err || txt;
 }
 
 /* ---------------- EXPORT / IMPORT ---------------- */
@@ -518,32 +797,34 @@ async function giveFile(name, text, type){
 }
 function csv(){
   const q = v => `"${String(v ?? '').replace(/"/g,'""')}"`;
-  const games = UI.statsGame === 'all' ? S.games : S.games.filter(g => g.id === UI.statsGame);
-  const rows = [['date','game','period','time','who_type','who','goal','points','players']];
-  games.forEach(g => g.events.forEach(e => rows.push([g.date, g.name, e.period, new Date(e.ts).toLocaleTimeString(), e.targetType, e.targetName, e.goalName, e.points,
-    e.members.map(id => pname(player(id))).join('; ')])));
+  const rows = [['game_id','date','game','period','time','who_type','who','goal','points','players','coach']];
+  statGames().forEach(g => g.events.forEach(e => rows.push([g.id, g.date, g.name, e.period, new Date(e.ts).toLocaleTimeString(), e.targetType, e.targetName, e.goalName, e.points,
+    (e.members || []).map(id => pname(player(id))).join('; '), e.coach || ''])));
   return rows.map(r => r.map(q).join(',')).join('\n');
 }
-const stamp = () => new Date().toISOString().slice(0,10);
 
-/* ---------------- EVENTS ---------------- */
+/* ---------------- ACTIONS ---------------- */
+function linesOp(g, fn){ const lines = clone(gLines(g)); fn(lines); setGame(g, { lines }); renderGame(); }
+function swapIds(arr, id, dir, sameAs){
+  const ids = arr.map(x => x.id), i = ids.indexOf(id); let j = i + dir;
+  if (sameAs) while (j >= 0 && j < arr.length && sameAs(arr[j]) !== sameAs(arr[i])) j += dir;
+  if (j < 0 || j >= arr.length) return null;
+  [ids[i], ids[j]] = [ids[j], ids[i]]; return ids;
+}
+function addPlayer(raw){
+  const m = raw.match(/^#?(\d+)\s+(.+)$/);
+  commit({ t:'upsert', c:'players', v:{ id: uid(), number: m ? m[1] : '', name: m ? m[2] : raw } });
+}
 const ACT = {
   view: d => setView(d.v),
-  move: d => {
-    const arr = S[d.coll], i = arr.findIndex(x => x.id === d.id), dir = +d.dir;
-    let j = i + dir;
-    if (d.coll === 'goals') while (j >= 0 && j < arr.length && arr[j].scope !== arr[i].scope) j += dir;
-    if (j < 0 || j >= arr.length) return;
-    [arr[i], arr[j]] = [arr[j], arr[i]]; save(); renderSetup();
-  },
+  move: d => { const ids = swapIds(S[d.coll], d.id, +d.dir, d.coll === 'goals' ? x => x.scope : null); if (ids){ commit({ t:'order', c:d.coll, ids }); render(); } },
   del: d => {
+    if (d.coll === 'trackers'){ ensureTrackers(); if (S.trackers.length <= 1) return alert('Keep at least one tracker.'); }
     const item = S[d.coll].find(x => x.id === d.id);
-    if (!confirm(`Delete “${item.name}”? (Past awards stay in your stats.)`)) return;
-    S[d.coll] = S[d.coll].filter(x => x.id !== d.id);
-    if (d.coll === 'players') S.groups.forEach(g => g.members = g.members.filter(m => m !== d.id));
-    save(); renderSetup();
+    if (!confirm(`Delete “${item.name}”? ${d.coll === 'trackers' ? ' Its marks will be hidden.' : ' Past awards stay in the stats.'}`)) return;
+    commit({ t:'del', c:d.coll, id:d.id }); render();
   },
-  member: d => { const g = S.groups.find(x => x.id === d.g); g.members = g.members.includes(d.p) ? g.members.filter(m => m !== d.p) : [...g.members, d.p]; save(); renderSetup(); },
+  member: d => { const g = clone(S.groups.find(x => x.id === d.g)); g.members = g.members.includes(d.p) ? g.members.filter(m => m !== d.p) : [...g.members, d.p]; commit({ t:'upsert', c:'groups', v:g }); render(); },
   pick: (d, b) => {
     const pk = $('#picker'); UI.pickTarget = d.target;
     pk.innerHTML = EMOJI.map(x => `<button type="button" data-act="picked" data-e="${x}">${x}</button>`).join('');
@@ -555,39 +836,64 @@ const ACT = {
   picked: d => {
     $('#picker').classList.remove('on');
     if (UI.pickTarget === 'new'){ $('#newIcon').textContent = d.e; document.querySelector('form[data-form=goal] [name=i]').value = d.e; }
-    else { const g = S.goals.find(x => x.id === UI.pickTarget); if (g){ g.icon = d.e; save(); renderSetup(); } }
+    else if (UI.pickTarget.startsWith('tr:')){ ensureTrackers(); const t = S.trackers.find(x => x.id === UI.pickTarget.slice(3)); if (t){ commit({ t:'upsert', c:'trackers', v:Object.assign(clone(t), { icon:d.e }) }); render(); } }
+    else { const g = S.goals.find(x => x.id === UI.pickTarget); if (g){ commit({ t:'upsert', c:'goals', v:Object.assign(clone(g), { icon:d.e }) }); render(); } }
   },
-  newscope: (d, b) => {
-    b.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-    document.querySelector('form[data-form=goal] [name=s]').value = UI.newScope = d.s;
-  },
-  newpts: d => {
-    const inp = document.querySelector('form[data-form=goal] [name=p]');
-    inp.value = Math.max(1, Math.min(20, (+inp.value || 0) + +d.d)); $('#newPts').textContent = inp.value;
-  },
-  bulk: () => { $('#bulk').value.split('\n').map(s => s.trim()).filter(Boolean).forEach(addPlayer); save(); renderSetup(); },
-  period: d => { curGame().period = d.p; save(); renderGame(); },
-  open: d => { UI.sheet = {type: d.type, id: d.id}; renderSheet(); },
+  newscope: (d, b) => { b.parentNode.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); document.querySelector('form[data-form=goal] [name=s]').value = UI.newScope = d.s; },
+  newpts: d => { const inp = document.querySelector('form[data-form=goal] [name=p]'); inp.value = Math.max(1, Math.min(20, (+inp.value || 0) + +d.d)); $('#newPts').textContent = inp.value; },
+  bulk: () => { $('#bulk').value.split('\n').map(s => s.trim()).filter(Boolean).forEach(addPlayer); render(); },
+
+  // games
+  games: () => { openGame(null); render(); },
+  opengame: d => { const g = S.games.find(x => x.id === d.id); openGame(d.id, g && !g.ended && g.events.length ? 'live' : 'prep'); render(); },
+  prep: () => { UI.mode = 'prep'; render(); },
+  golive: () => { const g = game(); if (g.ended){ if (!confirm('Reopen this game for more awards?')) return; setGame(g, { ended:false }); } UI.mode = 'live'; render(); window.scrollTo(0, 0); },
+  here: d => { const g = game(), p = new Set(gPresent(g)); p.has(d.p) ? p.delete(d.p) : p.add(d.p); setGame(g, { present:S.players.map(x => x.id).filter(id => p.has(id)) }); render(); },
+  allhere: d => { setGame(game(), { present: d.v === '1' ? S.players.map(x => x.id) : [] }); render(); },
+  glmember: d => linesOp(game(), ls => { const l = ls.find(x => x.id === d.g); l.members = l.members.includes(d.p) ? l.members.filter(m => m !== d.p) : [...l.members, d.p]; }),
+  glmove: d => { const g = game(), ids = swapIds(gLines(g), d.id, +d.dir); if (ids) linesOp(g, ls => ls.sort((a,b) => ids.indexOf(a.id) - ids.indexOf(b.id))); },
+  gldel: d => { const g = game(), l = gLines(g).find(x => x.id === d.id); if (confirm(`Remove “${l.name}” from this game?`)) linesOp(g, ls => ls.splice(ls.findIndex(x => x.id === d.id), 1)); },
+  resetlines: () => { if (confirm('Replace this game\'s lines with the default lines from the Roster tab?')) { setGame(game(), { lines:clone(S.groups) }); render(); } },
+  ggoal: d => { const g = game(), ids = new Set(gGoalIds(g)); ids.has(d.id) ? ids.delete(d.id) : ids.add(d.id); setGame(g, { goalIds:S.goals.map(x => x.id).filter(id => ids.has(id)) }); render(); },
+  delgame: d => { const g = S.games.find(x => x.id === d.id); if (!confirm(`Delete “${g.name}” and all of its points? This can't be undone.`)) return; commit({ t:'gamedel', id:g.id }); openGame(null); render(); },
+  period: d => { setGame(game(), { period:d.p }); render(); },
+  endgame: () => { const g = game(); if (!confirm('End this game? You can reopen it later.')) return;
+    setGame(g, { ended:true }); UI.potgGame = g.id; UI.tracker = 'potg'; UI.mode = 'prep'; setView('potg'); toast('Game over. Pick the Player of the Game!'); },
+  open: d => { UI.sheet = { type:d.type, id:d.id }; renderSheet(); },
   close: () => { UI.sheet = null; $('#sheet').classList.remove('on'); },
   award: d => award(d.goal, d.type, d.id),
-  undo: () => {
-    if (!lastEvent) return;
-    S.games.forEach(g => g.events = g.events.filter(e => e.id !== lastEvent.id));
-    lastEvent = null; save(); $('#toast').classList.remove('on'); render();
+  undo: () => { if (!lastUndo) return; commit(lastUndo); lastUndo = null; $('#toast').classList.remove('on'); render(); },
+  delev: d => { commit({ t:'evdel', id:d.id }); render(); },
+
+  // POTG
+  potgplus: d => {
+    const sel = S.games.find(g => g.id === UI.potgGame), p = player(d.p);
+    const v = { id:uid(), trackerId:UI.tracker, playerId:d.p, gameId: sel ? sel.id : '', gameName: sel ? sel.name : '', date: sel ? sel.date : today(), ts: Date.now() };
+    commit({ t:'potg', v }); lastUndo = { t:'potgdel', id:v.id }; const tr = trackers().find(t => t.id === UI.tracker); toast(`${tr.icon || '✓'} ${pname(p)} — ${tr.name}`, true); render();
   },
-  delev: d => { const g = curGame(); g.events = g.events.filter(e => e.id !== d.id); save(); renderGame(); },
-  endgame: () => { const g = curGame(); if (!confirm('End this game? You can still see it in Stats.')) return;
-    g.ended = true; S.currentGameId = null; UI.statsGame = g.id; save(); setView('stats'); },
-  csv: () => giveFile(`shift-points-${stamp()}.csv`, csv(), 'text/csv'),
-  backup: () => giveFile(`shift-points-backup-${stamp()}.json`, JSON.stringify(S, null, 2), 'application/json'),
+  tracker: d => { UI.tracker = d.id; render(); },
+  trsort: d => { UI.trSort = d.v; render(); },
+  trnew: () => { const n = prompt('Name of the new tracker (e.g. "Wore the A", "Led the stretch")'); if (n && n.trim()){ ensureTrackers(); const id = uid(); commit({ t:'upsert', c:'trackers', v:{ id, name:n.trim(), icon:'✓' } }); UI.tracker = id; render(); } },
+  potgminus: d => {
+    const list = marksFor(UI.tracker).filter(x => x.playerId === d.p), pick = list.find(x => x.gameId === UI.potgGame) || list[list.length - 1];
+    if (pick && confirm(`Remove ${pname(player(d.p))}'s award${pick.gameName ? ' for ' + pick.gameName : ''}?`)){ commit({ t:'potgdel', id:pick.id }); render(); }
+  },
+
+  // sync + files
+  syncsettings: () => { UI.sheet = { type:'sync' }; renderSheet(); },
+  syncconnect: () => connect(),
+  syncsave: () => { SY.coach = $('#syCoach').value.trim(); SY.code = $('#syCode').value.trim(); saveSync(); ACT.close(); sync(); },
+  syncnow: () => { SYS.err = ''; sync(); },
+  syncoff: () => {
+    if (OUT.length && !confirm(`${OUT.length} change(s) haven't reached the Sheet yet and won't be sent. Disconnect anyway?`)) return;
+    SY.url = ''; SY.since = 0; OUT = []; saveSync(); updateSyncDot(); renderSheet();
+  },
+  csv: () => giveFile(`shift-points-${today()}.csv`, csv(), 'text/csv'),
+  backup: () => giveFile(`shift-points-backup-${today()}.json`, JSON.stringify(S, null, 2), 'application/json'),
   import: () => $('#importFile').click(),
-  delgame: () => { const g = S.games.find(x => x.id === UI.statsGame); if (!confirm(`Delete game “${g.name}” and all its points?`)) return;
-    S.games = S.games.filter(x => x !== g); if (S.currentGameId === g.id) S.currentGameId = null; UI.statsGame = 'all'; save(); renderStats(); },
 };
-function addPlayer(raw){
-  const m = raw.match(/^#?(\d+)\s+(.+)$/);
-  S.players.push({ id: uid(), number: m ? m[1] : '', name: m ? m[2] : raw });
-}
+
+/* ---------------- EVENT WIRING ---------------- */
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
   if (!e.target.closest('#picker') && !(b && b.dataset.act === 'pick')) $('#picker').classList.remove('on');
@@ -595,31 +901,43 @@ document.addEventListener('click', e => {
   if (e.target.id === 'sheet') ACT.close();
 });
 document.addEventListener('change', e => {
-  const el = e.target;
-  if (el.dataset.edit){
-    const [coll, id, field] = el.dataset.edit.split(':');
-    const item = S[coll].find(x => x.id === id); if (!item) return;
-    item[field] = field === 'points' ? (Number(el.value) || 0) : el.value.trim();
-    save(); if (field === 'scope') renderSetup();
+  const el = e.target, d = el.dataset;
+  if (d.edit){
+    if (d.edit.startsWith('trackers:')) ensureTrackers();
+    const [coll, id, field] = d.edit.split(':'), item = S[coll].find(x => x.id === id); if (!item) return;
+    const val = field === 'points' ? (Number(el.value) || 0) : el.value.trim();
+    commit({ t:'upsert', c:coll, v:Object.assign(clone(item), { [field]:val }) });
+    if (field === 'scope') render();
   }
-  if (el.dataset.actChange === 'statsgame'){ UI.statsGame = el.value; renderStats(); }
-  if (el.dataset.actChange === 'share'){ UI.share = el.checked; renderStats(); }
+  if (d.gline){ const g = game(); const lines = clone(gLines(g)); const l = lines.find(x => x.id === d.gline); if (l){ l.name = el.value.trim(); setGame(g, { lines }); } }
+  if (d.gfield){ setGame(game(), { [d.gfield]: el.value.trim() }); }
+  if (d.actChange === 'statsgame'){ UI.statsGame = el.value; renderStats(); }
+  if (d.actChange === 'share'){ UI.share = el.checked; renderStats(); }
+  if (d.actChange === 'potggame'){ UI.potgGame = el.value; renderPotg(); }
 });
+document.addEventListener('focusout', () => setTimeout(() => {
+  const a = document.activeElement;
+  if (pendingRender && !(a && a.matches('input,textarea,select'))) render();
+}, 0));
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && e.target.dataset && e.target.dataset.edit) e.target.blur();
+  if (e.key === 'Enter' && e.target.dataset && (e.target.dataset.edit || e.target.dataset.gline || e.target.dataset.gfield)) e.target.blur();
   if (e.key === 'Escape' && UI.sheet) ACT.close();
 });
 document.addEventListener('submit', e => {
   e.preventDefault();
   const f = e.target, kind = f.dataset.form, v = n => (f.elements[n]?.value || '').trim();
   if (kind === 'player' && v('n')) addPlayer(v('n'));
-  else if (kind === 'group' && v('n')) S.groups.push({ id: uid(), name: v('n'), members: [] });
-  else if (kind === 'goal' && v('n')) S.goals.push({ id: uid(), name: v('n'), scope: v('s'), points: Number(v('p')) || 1, icon: v('i') || '⭐' });
-  else if (kind === 'game'){
-    const g = { id: uid(), name: v('o') || 'Game', date: v('d'), period: '1', events: [], ended: false };
-    S.games.push(g); S.currentGameId = g.id; save(); renderGame(); return;
+  else if (kind === 'group' && v('n')) commit({ t:'upsert', c:'groups', v:{ id: uid(), name: v('n'), members: [] } });
+  else if (kind === 'goal' && v('n')) commit({ t:'upsert', c:'goals', v:{ id: uid(), name: v('n'), scope: v('s'), points: Number(v('p')) || 1, icon: v('i') || '⭐' } });
+  else if (kind === 'gline' && v('n')) { const n = v('n'); linesOp(game(), ls => ls.push({ id: uid(), name: n, members: [] })); }
+  else if (kind === 'newgame'){
+    const prev = [...S.games].sort((a,b) => (a.date||'').localeCompare(b.date||'')).pop();
+    const id = uid();
+    commit({ t:'game', v:{ id, name: v('o') || 'Game', date: v('d') || today(), period:'1', ended:false,
+      present: S.players.map(p => p.id), lines: clone(prev ? gLines(prev) : S.groups), goalIds: prev ? gGoalIds(prev).slice() : S.goals.map(x => x.id) } });
+    openGame(id, 'prep'); render(); return;
   } else return;
-  save(); renderSetup();
+  render();
   const nf = document.querySelector(`form[data-form="${kind}"] input[name="n"]`); if (nf) nf.focus();
 });
 $('#importFile').addEventListener('change', e => {
@@ -627,16 +945,24 @@ $('#importFile').addEventListener('change', e => {
   const r = new FileReader();
   r.onload = () => {
     try { const d = JSON.parse(r.result); if (!d.players || !d.goals) throw new Error('Not a Shift Points backup');
-      if (!confirm('Replace everything on this device with this backup?')) return;
-      S = d; save(); UI.statsGame = 'all'; render(); toast('Backup restored');
+      if (!confirm('Replace everything on this device with this backup?' + (SY.url ? ' It will also be sent to the team Sheet.' : ''))) return;
+      S = Object.assign(blankState(), d); save();
+      if (SY.url){ OUT.push(...snapshotOps(S)); saveSync(); sync(); }
+      UI.statsGame = 'all'; render(); toast('Backup restored');
     } catch(err){ alert('Could not read file: ' + err.message); }
     e.target.value = '';
   };
   r.readAsText(file);
 });
 
+setInterval(() => sync(), 30000);
+addEventListener('online', () => { SYS.err = ''; sync(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(); });
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+ensureTrackers();
+updateSyncDot();
 setView(UI.view);
+sync();
 </script>
 </body>
 </html>

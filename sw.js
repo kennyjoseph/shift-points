@@ -1,6 +1,6 @@
 // Offline cache: serve from cache first, refresh in the background when online.
-const CACHE = 'shiftpoints-v3';
-const FILES = ['./', './index.html', './logo.png', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
+const CACHE = 'shiftpoints-v4';
+const FILES = ['./', './index.html', './ops.js', './logo.png', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
