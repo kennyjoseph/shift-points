@@ -355,7 +355,7 @@ header nav{margin-left:0}
 <script src="ops.js"></script>
 <script>
 const KEY = 'shiftpoints.v1';
-const APP_VERSION = '11';
+const APP_VERSION = '12';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = s => document.querySelector(s);
@@ -839,6 +839,8 @@ function renderTrackers(){
 // (Useless without the team code, which lives only in the Sheet's script.)
 const TEAM_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxdgmGCq6o9QXV-MHgw2KTb-Ygf_CKWDmjmyrCujXkw2Ll-slISUYaagY9SpZrKVYNT/exec';
 const okUrl = u => /^(https:\/\/script\.google(usercontent)?\.com\/|http:\/\/localhost)/.test(u);
+// Pull a usable URL out of whatever was typed/pasted; fall back to the team's built-in Sheet.
+const pickUrl = raw => { const m = String(raw || '').match(/(https:\/\/script\.google(usercontent)?\.com\/[^\s"'<>]+|http:\/\/localhost[^\s"'<>]*)/); return m ? m[1] : TEAM_SHEET_URL; };
 const inviteLink = () => `${location.origin}${location.pathname}#join=${encodeURIComponent(SY.code)}`;
 function syncForm(){
   const st = !SY.url ? 'Not connected. This device keeps everything to itself.'
@@ -904,7 +906,7 @@ async function sync(){
 }
 async function connect(url, code, coach){
   SY.url = (url || '').trim(); SY.code = (code || '').trim(); SY.coach = (coach || '').trim();
-  if (!okUrl(SY.url)){ SY.url = ''; return alert('That doesn\'t look like a Google Apps Script web app URL.'); }
+  if (!okUrl(SY.url)){ SY.url = ''; return alert('No team Sheet is set up yet. Paste the Sheet\'s web app URL (it starts with https://script.google.com/).'); }
   if (!SY.code){ SY.url = ''; return alert('Enter the team code.'); }
   SYS.busy = true; updateSyncDot();
   try {
@@ -1122,14 +1124,14 @@ const ACT = {
 
   // sync + files
   syncsettings: () => { UI.sheet = { type:'sync' }; renderSheet(); },
-  syncconnect: () => connect(TEAM_SHEET_URL && !$('#syUrl') ? TEAM_SHEET_URL : ($('#syUrl').value.trim() || TEAM_SHEET_URL), $('#syCode').value, $('#syCoach').value),
+  syncconnect: () => connect(pickUrl($('#syUrl') && $('#syUrl').value), $('#syCode').value, $('#syCoach').value),
   join: () => connect(TEAM_SHEET_URL, $('#joinCode').value, $('#joinName').value),
   invite: async () => {
     const link = inviteLink(), text = `Join the team in Shift Points: ${link}\n\nOpen it, then Share → Add to Home Screen. If it asks, the team code is ${SY.code}.`;
     try { if (navigator.share){ await navigator.share({ title:'Shift Points', text }); return; } } catch(e){ if (e.name === 'AbortError') return; }
     try { await navigator.clipboard.writeText(text); toast('Invite copied. Paste it in a text.'); } catch(e){ prompt('Copy this invite:', text); }
   },
-  syncsave: () => { SY.coach = $('#syCoach').value.trim(); SY.code = $('#syCode').value.trim(); const u = $('#syUrl'); if (u && okUrl(u.value.trim())) SY.url = u.value.trim(); saveSync(); ACT.close(); sync(); },
+  syncsave: () => { SY.coach = $('#syCoach').value.trim(); SY.code = $('#syCode').value.trim(); const u = $('#syUrl'); if (u && okUrl(pickUrl(u.value))) SY.url = pickUrl(u.value); saveSync(); ACT.close(); sync(); },
   syncnow: () => { SYS.err = ''; sync(); },
   syncoff: () => {
     if (OUT.length && !confirm(`${OUT.length} change(s) haven't reached the Sheet yet and won't be sent. Disconnect anyway?`)) return;
