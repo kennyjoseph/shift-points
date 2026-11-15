@@ -354,7 +354,7 @@ header nav{margin-left:0}
 <script src="ops.js"></script>
 <script>
 const KEY = 'shiftpoints.v1';
-const APP_VERSION = '8';
+const APP_VERSION = '9';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = s => document.querySelector(s);
@@ -412,7 +412,7 @@ function commit(op){
 }
 
 let UI = { view: localStorage.getItem('shiftpoints.view') || 'game', gameId: localStorage.getItem('shiftpoints.game') || null,
-           mode: 'prep', stGame: 'all', stGoal: 'all', stLevel: 'player', stCols: 'goals', share: false, sheet: null, newScope: 'individual', potgGame: null, tracker: 'potg', trSort: 'roster' };
+           mode: 'prep', stGame: null, stGoal: 'all', stLevel: 'player', stCols: 'goals', share: false, sheet: null, newScope: 'individual', potgGame: null, tracker: 'potg', trSort: 'roster' };
 if (!VIEWS.includes(UI.view)) UI.view = 'game';
 let lastUndo = null, toastTimer = null, pendingRender = false;
 
@@ -712,7 +712,10 @@ function toast(msg, undo){
 /* ---------------- STATS: one grid, rows = players/lines/team, columns = goals or games ---------------- */
 function statGames(){ return UI.stGame === 'all' ? S.games : S.games.filter(g => g.id === UI.stGame); }
 function renderStats(){
-  if (UI.stGame !== 'all' && !S.games.find(g => g.id === UI.stGame)) UI.stGame = 'all';
+  if (UI.stGame === null || (UI.stGame !== 'all' && !S.games.find(g => g.id === UI.stGame))){
+    const recent = [...S.games].sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+    UI.stGame = (game() || recent || {}).id || 'all';
+  }
   if (UI.stGoal !== 'all' && !S.goals.find(g => g.id === UI.stGoal)) UI.stGoal = 'all';
   const L = UI.stLevel, byGame = UI.stCols === 'games', byPeriod = UI.stCols === 'periods';
   const games = [...S.games].sort((a,b) => (a.date||'').localeCompare(b.date||''));
@@ -762,11 +765,11 @@ function renderStats(){
       ${seg('stlevel', L, [['player','Players'],['group','Lines'],['team','Team']])}
       ${seg('stcols', UI.stCols, [['goals','By goal'],['games','By game'],['periods','By period']])}
       ${byGame || byPeriod ? `<select data-act-change="stgoal"><option value="all">Overall points</option>${S.goals.map(x => `<option value="${x.id}" ${UI.stGoal === x.id ? 'selected' : ''}>${esc(x.icon || '')} ${esc(x.name)}</option>`).join('')}</select>` : ''}
-      ${!byGame ? `<select data-act-change="stgame"><option value="all">All games (${S.games.length})</option>${[...games].reverse().map(g => `<option value="${g.id}" ${UI.stGame === g.id ? 'selected' : ''}>${esc(fmtDate(g.date))} — ${esc(g.name)}</option>`).join('')}</select>` : ''}
+      ${!byGame ? `<select data-act-change="stgame"><option value="all">Whole season (${S.games.length} games)</option>${[...games].reverse().map(g => `<option value="${g.id}" ${UI.stGame === g.id ? 'selected' : ''}>${esc(fmtDate(g.date))} — ${esc(g.name)}</option>`).join('')}</select>` : ''}
       ${L === 'player' ? `<label class="ck"><input type="checkbox" data-act-change="share" ${UI.share ? 'checked' : ''}> Include line & team goals</label>` : ''}
     </div>
     <div class="panel">
-      <p class="sub" style="margin-bottom:10px">${measure} Change a goal's points in the Goals tab and every game recalculates.</p>
+      <p class="sub" style="margin-bottom:10px"><b style="color:var(--fg)">${byGame ? 'Whole season, game by game' : UI.stGame === 'all' ? 'Whole season' : (g => `${esc(fmtDate(g.date))} — ${esc(g.name)}`)(S.games.find(x => x.id === UI.stGame))}.</b> ${measure} Change a goal's points in the Goals tab and every game recalculates.</p>
       ${cols.length ? `<div class="mwrap"><table class="matrix">
         <tr><th class="rn"></th>${cols.map(c => `<th class="c">${esc(c.head)}<small>${esc(c.sub)}</small></th>`).join('')}<th class="c tot">Total</th>${byGame ? '<th class="c tot">Avg</th>' : ''}</tr>
         ${rows.map(r => `<tr><td class="rn">${esc(r.name)}</td>${r.cells.map(cell).join('')}<td class="c tot">${r.total}</td>${byGame ? `<td class="c tot">${r.avg.toFixed(1)}</td>` : ''}</tr>`).join('')}
@@ -964,7 +967,7 @@ const ACT = {
 
   // games
   games: () => { openGame(null); render(); },
-  opengame: d => { const g = S.games.find(x => x.id === d.id); openGame(d.id, g && !g.ended && g.events.length ? 'live' : 'prep'); render(); },
+  opengame: d => { UI.stGame = d.id; const g = S.games.find(x => x.id === d.id); openGame(d.id, g && !g.ended && g.events.length ? 'live' : 'prep'); render(); },
   prep: () => { UI.mode = 'prep'; render(); },
   golive: () => { const g = game(); if (g.ended){ if (!confirm('Reopen this game for more awards?')) return; setGame(g, { ended:false }); } UI.mode = 'live'; render(); window.scrollTo(0, 0); },
   here: d => { const g = game(), p = new Set(gPresent(g)); p.has(d.p) ? p.delete(d.p) : p.add(d.p); setGame(g, { present:S.players.map(x => x.id).filter(id => p.has(id)) }); render(); },
@@ -1068,7 +1071,7 @@ document.addEventListener('submit', e => {
     const id = uid();
     commit({ t:'game', v:{ id, name: v('o') || 'Game', date: v('d') || today(), period:'1', ended:false,
       present: S.players.map(p => p.id), lines: clone(prev ? gLines(prev) : S.groups), goalIds: prev ? gGoalIds(prev).slice() : S.goals.map(x => x.id) } });
-    openGame(id, 'prep'); render(); return;
+    openGame(id, 'prep'); UI.stGame = id; render(); return;
   } else return;
   render();
   const nf = document.querySelector(`form[data-form="${kind}"] input[name="n"]`); if (nf) nf.focus();
