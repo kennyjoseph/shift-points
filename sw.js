@@ -1,7 +1,7 @@
 // Offline support.
 // Pages: try the network first (so updates show up right away), but fall back to the saved copy
 // after 3 seconds or when there's no signal. Other files: saved copy first, refreshed in the background.
-const CACHE = 'shiftpoints-v10';
+const CACHE = 'shiftpoints-v11';
 const FILES = ['./', './index.html', './ops.js', './logo.png', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

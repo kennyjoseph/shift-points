@@ -355,7 +355,7 @@ header nav{margin-left:0}
 <script src="ops.js"></script>
 <script>
 const KEY = 'shiftpoints.v1';
-const APP_VERSION = '10';
+const APP_VERSION = '11';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = s => document.querySelector(s);
@@ -837,7 +837,7 @@ function renderTrackers(){
 /* ---------------- SYNC ---------------- */
 // The team's Google Sheet web app. Built in so coaches only need the team code.
 // (Useless without the team code, which lives only in the Sheet's script.)
-const TEAM_SHEET_URL = '';
+const TEAM_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxdgmGCq6o9QXV-MHgw2KTb-Ygf_CKWDmjmyrCujXkw2Ll-slISUYaagY9SpZrKVYNT/exec';
 const okUrl = u => /^(https:\/\/script\.google(usercontent)?\.com\/|http:\/\/localhost)/.test(u);
 const inviteLink = () => `${location.origin}${location.pathname}#join=${encodeURIComponent(SY.code)}`;
 function syncForm(){
