@@ -6,10 +6,10 @@ An offline web app for youth hockey coaches. Coaches award points when kids hit 
 
 ## Tabs
 
-- **Game**: create a game, then set its lineup: who's here, that game's lines, and which goals are in play. Tap **Go Live** for the touch screen.
+- **Game**: create a game, then set its lineup: who's here, that game's lines, and the 3–5 goals in play. Tap **Go Live**, pick a goal at the top, and tap each player, line or team that earned it.
 - **Roster**: the team's players and the default lines that new games start from.
 - **Goals**: the full list of goals.
-- **Stats**: leaderboards for one game or the season, CSV export, backup and restore.
+- **Stats**: a grid you can switch between Players, Lines and Team, with columns by goal or by game. Overall score = tallies × each goal's points. Changing a goal's points re-scores every game.
 - **Trackers**: counts across games (Player of the Game, Started the Game, and any you add).
 
 Everything is saved on the device first, so the app works with no signal.
@@ -36,6 +36,6 @@ Sync lets several coaches share one set of data. Changes queue on each device an
    - The first device to connect sends its data to the Sheet.
    - Devices that connect later load the team's data from the Sheet. This replaces whatever was on that device.
 
-The Sheet gets these tabs, rebuilt after each sync: **Trackers**, **Tracker Log**, **Players**, **Games**, **Lines**, **Awards**, **Goals**, **Roster**, and **Log**. Log is the raw change history that the other tabs are built from, so don't edit it.
+The Sheet gets these tabs, rebuilt after each sync: **Tally** (one row per game × goal × person, good for pivot tables), **Trackers**, **Tracker Log**, **Players**, **Games**, **Lines**, **Awards**, **Goals**, **Roster**, and **Log**. Log is the raw change history that the other tabs are built from, so don't edit it.
 
 **If you change `Code.gs` later:** go to **Deploy → Manage deployments**, click the pencil icon, choose **Version: New version**, and click **Deploy**. The URL stays the same.

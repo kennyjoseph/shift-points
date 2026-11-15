@@ -142,7 +142,10 @@ function rebuild_(ss, log, last){
   const lines = g => g.lines || st.groups;
   const goalIds = g => g.goalIds || st.goals.map(x => x.id);
   const allEv = games.reduce((a, g) => a.concat(g.events.map(e => ({ g: g, e: e }))), []);
-  const sum = list => list.reduce((a, x) => a + x.e.points, 0);
+  const goalOf = id => st.goals.find(x => x.id === id);
+  // Overall score uses each goal's CURRENT points, so changing a goal's points re-scores every game.
+  const w = e => { const x = goalOf(e.goalId); return x ? (Number(x.points) || 0) : (e.points || 0); };
+  const sum = list => list.reduce((a, x) => a + w(x.e), 0);
   const scopeName = { individual: 'Individual', group: 'Line / Group', team: 'Whole Team' };
 
   const trackers = st.trackers.length ? st.trackers : DEFAULT_TRACKERS;
@@ -170,7 +173,7 @@ function rebuild_(ss, log, last){
       return [g.id, g.date, g.name, g.ended ? 'Final' : (g.events.length ? 'Live' : 'Upcoming'),
         here.map(id => nm(pl(id))).join(', '),
         st.players.filter(p => here.indexOf(p.id) < 0).map(nm).join(', '),
-        g.events.length, g.events.reduce((a, e) => a + e.points, 0),
+        g.events.length, g.events.reduce((a, e) => a + w(e), 0),
         st.potg.filter(x => x.gameId === g.id && (x.trackerId || 'potg') === 'potg').map(x => nm(pl(x.playerId))).join(', '),
         st.potg.filter(x => x.gameId === g.id && x.trackerId === 'start').map(x => nm(pl(x.playerId))).join(', ')];
     }));
@@ -178,12 +181,23 @@ function rebuild_(ss, log, last){
   const lineRows = [];
   games.forEach(g => lines(g).forEach(l => lineRows.push([g.id, g.date, g.name, l.name,
     l.members.filter(m => present(g).indexOf(m) >= 0).map(m => nm(pl(m))).join(', '),
-    g.events.filter(e => e.targetType === 'group' && e.targetId === l.id).reduce((a, e) => a + e.points, 0)])));
+    g.events.filter(e => e.targetType === 'group' && e.targetId === l.id).reduce((a, e) => a + w(e), 0)])));
   write_(ss, 'Lines', ['Game ID', 'Date', 'Game', 'Line', 'Players', 'Line Points'], lineRows);
 
   write_(ss, 'Awards', ['Game ID', 'Date', 'Game', 'Period', 'Time', 'Type', 'Who', 'Goal', 'Points', 'Players', 'Coach'],
     allEv.map(x => [x.g.id, x.g.date, x.g.name, x.e.period, new Date(x.e.ts), x.e.targetType, x.e.targetName,
-      x.e.goalName, x.e.points, (x.e.members || []).map(id => nm(pl(id))).join(', '), x.e.coach || '']));
+      x.e.goalName, w(x.e), (x.e.members || []).map(id => nm(pl(id))).join(', '), x.e.coach || '']));
+
+  // Tally: one row per game x goal x who, ready for a pivot table or chart.
+  const tally = {};
+  allEv.forEach(x => {
+    const k = [x.g.id, x.e.goalId, x.e.targetType, x.e.targetType === 'group' ? x.e.targetName : x.e.targetId].join('|');
+    if (!tally[k]){ const gl = goalOf(x.e.goalId);
+      tally[k] = [x.g.id, x.g.date, x.g.name, gl ? gl.name : x.e.goalName, scopeName[gl ? gl.scope : ''] || x.e.targetType,
+                  x.e.targetType === 'player' ? nm(pl(x.e.targetId)) : x.e.targetName, 0, w(x.e), 0]; }
+    tally[k][6]++; tally[k][8] += w(x.e);
+  });
+  write_(ss, 'Tally', ['Game ID', 'Date', 'Game', 'Goal', 'Level', 'Who', 'Times', 'Points Each', 'Points'], Object.keys(tally).map(k => tally[k]));
 
   write_(ss, 'Goals', ['Goal', 'Icon', 'Who Earns It', 'Points', 'Times Awarded', 'Games Used'],
     st.goals.map(x => [x.name, x.icon || '', scopeName[x.scope] || x.scope, x.points,

@@ -100,7 +100,7 @@ kbd{font-family:inherit;font-size:11px;border:1px solid var(--line2);border-bott
 .stepper span{min-width:58px;text-align:center;font-weight:900}
 .stepper span small{font-size:10px;color:var(--dim);margin-left:2px}
 .segs{display:flex;flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
-.segs button{flex:1;border:0;background:none;border-radius:8px;padding:9px 4px;font-weight:800;font-size:13px;color:var(--dim)}
+.segs button{flex:1;border:0;background:none;border-radius:8px;padding:9px 12px;white-space:nowrap;font-weight:800;font-size:13px;color:var(--dim)}
 .segs button.on{background:var(--fg);color:var(--ink)}
 #picker{position:fixed;z-index:70;display:none;background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:10px;box-shadow:0 20px 50px rgba(0,0,0,.6);width:316px}
 #picker.on{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
@@ -177,6 +177,39 @@ label.ck{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:14px
 .prow{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px 10px 10px 16px}
 .prow.win{border-color:var(--fg)}
 .prow.out{opacity:.45}
+/* goal-first live view */
+.gstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px}
+.gpick{position:relative;border:2px solid var(--line2);background:var(--panel2);border-radius:18px;padding:14px 16px;text-align:left;display:flex;flex-direction:column;gap:4px;min-height:110px}
+.gpick .ic{font-size:28px;line-height:1}
+.gpick .gn{font-weight:900;font-size:17px;line-height:1.15;padding-right:34px}
+.gpick .gs{font-size:12px;color:var(--dim);font-weight:700;margin-top:auto}
+.gpick .gc{position:absolute;top:12px;right:14px;font-size:26px;font-weight:900;font-variant-numeric:tabular-nums}
+.gpick.on{background:var(--fg);color:var(--ink);border-color:var(--fg)}
+.gpick.on .gs{color:#444}
+.thead{color:var(--dim);font-size:14px;margin-bottom:10px}
+.thead b{color:var(--fg)}
+.trow{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line);align-items:start}
+.tlabel{font-weight:800;color:var(--dim);font-size:14px;padding-top:10px}
+.pb.has{border-color:var(--fg);background:#262626}
+.pb.flash{animation:flash .45s}
+.pb .pp{font-size:26px}
+.lplayers.wide{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.pb.tall{min-height:96px}
+.pb .pn small{margin-top:4px}
+.pb.team{width:100%;min-height:150px;padding:24px}
+.pb.team .pn{font-size:28px}
+.pb.team .pp{font-size:56px}
+.fe .p{min-width:0}
+/* stats matrix */
+.mwrap{overflow-x:auto;margin:0 -6px}
+table.matrix{border-collapse:separate;border-spacing:3px;width:auto;min-width:100%}
+.matrix td,.matrix th{border:0;padding:8px 10px}
+.matrix th.c{font-size:12px;letter-spacing:0;text-transform:none;color:var(--fg);font-weight:800;text-align:center;vertical-align:bottom;min-width:76px;max-width:130px}
+.matrix th small{display:block;color:var(--dimmer);font-weight:600;font-size:11px;margin-top:2px}
+.matrix td.c{text-align:center;font-weight:800;font-variant-numeric:tabular-nums;border-radius:8px}
+.matrix td.na{background:repeating-linear-gradient(45deg,transparent 0 4px,#151515 4px 8px)}
+.matrix .rn{position:sticky;left:0;background:var(--panel);font-weight:800;white-space:nowrap;z-index:1;padding-left:6px}
+.matrix .tot{font-weight:900;font-size:16px;background:var(--panel2)}
 .trtabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
 .trtabs button{flex:none;border:1px solid var(--line2);background:var(--panel2);border-radius:999px;padding:12px 18px;font-weight:800;color:var(--dim);font-size:15px}
 .trtabs button.on{background:var(--fg);color:var(--ink);border-color:var(--fg)}
@@ -216,6 +249,13 @@ header nav{margin-left:0}
   .lhead{flex-direction:row;align-items:center;min-height:0;padding:10px 14px;gap:10px}
   .lhead .lg{margin:0 0 0 auto}
   .lplayers{grid-template-columns:repeat(3,1fr);gap:6px}
+  .gstrip{grid-template-columns:repeat(2,1fr);gap:8px}
+  .gpick{min-height:92px;padding:12px}
+  .gpick .gn{font-size:15px}
+  .trow{grid-template-columns:1fr;gap:4px}
+  .tlabel{padding:0}
+  .lplayers.wide{grid-template-columns:1fr}
+  .toolbar .segs{flex:1 1 100%}
   .pb{min-height:62px;padding:8px 10px;flex-direction:column;align-items:flex-start;gap:2px}
   .pn{font-size:15px;flex:none;overflow-wrap:anywhere}
   .pp{font-size:18px}
@@ -334,7 +374,7 @@ function commit(op){
 }
 
 let UI = { view: localStorage.getItem('shiftpoints.view') || 'game', gameId: localStorage.getItem('shiftpoints.game') || null,
-           mode: 'prep', statsGame: 'all', share: false, sheet: null, newScope: 'individual', potgGame: null, tracker: 'potg', trSort: 'roster' };
+           mode: 'prep', stGame: 'all', stGoal: 'all', stLevel: 'player', stCols: 'goals', liveGoal: null, share: false, sheet: null, newScope: 'individual', potgGame: null, tracker: 'potg', trSort: 'roster' };
 if (!VIEWS.includes(UI.view)) UI.view = 'game';
 let lastUndo = null, toastTimer = null, pendingRender = false;
 
@@ -421,7 +461,7 @@ function renderGoals(){
         <button class="emo" data-act="pick" data-target="${g.id}">${esc(g.icon || '⭐')}</button>
         <input style="flex:1 1 70%;font-weight:700" data-edit="goals:${g.id}:name" value="${esc(g.name)}">
         <span style="width:44px"></span>
-        <input type="number" class="num" data-edit="goals:${g.id}:points" value="${g.points}" title="Points"><span class="breakdown">pts</span>
+        <input type="number" class="num" data-edit="goals:${g.id}:points" value="${g.points}" title="Points each time it's earned"><span class="breakdown">pts each</span>
         <select data-edit="goals:${g.id}:scope" style="flex:1;padding:6px 8px;font-size:13px" title="Who earns it">${SCOPES.map(([v,l]) => `<option value="${v}" ${v===sc?'selected':''}>${l}</option>`).join('')}</select>
         ${moveBtns('move', g.id, 'data-coll="goals"')}${delBtn('del', g.id, 'data-coll="goals"')}
       </div>`).join('') || '<div class="empty" style="padding:8px">None</div>');
@@ -429,7 +469,7 @@ function renderGoals(){
   $('#goals').innerHTML = `
   <div class="grid3 two">
     <div class="panel">
-      <h2>New Goal</h2><p class="sub">Every goal the team uses. Pick which ones are in play for each game in the Game tab.</p>
+      <h2>New Goal</h2><p class="sub">Every goal the team uses. Pick 3–5 for each game in the Game tab. Points = how much one tally counts toward the overall score; changing it recalculates every game.</p>
       <form data-form="goal" style="display:flex;flex-direction:column;gap:10px">
         <div class="row">
           <button type="button" class="emo" data-act="pick" data-target="new" id="newIcon">⭐</button>
@@ -516,36 +556,52 @@ function renderPrep(g){
         <div class="list">${lineCards(lines, here, 'game')}</div>
       </div>
       <div class="panel">
-        <h2>Goals This Game</h2><p class="sub">${ids.size} in play. Add new goals in the Goals tab.</p>
+        <h2>Goals This Game</h2><p class="sub">${ids.size} in play (3–5 works best). Add new goals in the Goals tab.</p>
         ${goalChips || '<div class="empty">No goals yet</div>'}
       </div>
     </div>
     <div style="margin-top:24px;text-align:center"><button class="btn" data-act="delgame" data-id="${g.id}" style="color:var(--dim)">Delete this game</button></div>`;
 }
 
-/* ---------------- GAME: LIVE ---------------- */
+/* ---------------- GAME: LIVE (goal first: pick a goal, then tap who earned it) ---------------- */
+const SCOPE_SHORT = { individual: 'Player', group: 'Line', team: 'Team' };
+const weight = e => { const x = S.goals.find(g => g.id === e.goalId); return x ? (Number(x.points) || 0) : (e.points || 0); };
 function renderLive(g){
-  const evts = g.events, present = new Set(gPresent(g));
-  const nowCount = (type, id) => evts.filter(e => e.period === g.period && e.targetType === type && (type === 'team' || e.targetId === id)).length;
-  const badge = n => n ? `<span class="now">+${n}</span>` : '';
-  const pbtn = p => `<button class="pb" data-act="open" data-type="player" data-id="${p.id}">
-      <span class="pn">${p.number ? `<small>#${esc(p.number)}</small>` : ''}${esc(p.name)}</span>
-      <span class="pp">${evPoints(evts,'player',p.id)}</span>${badge(nowCount('player', p.id))}</button>`;
-  const lines = gLines(g);
-  const inLine = new Set(lines.flatMap(l => l.members));
-  const others = S.players.filter(p => present.has(p.id) && !inLine.has(p.id));
-  const rows = lines.map(l => {
-    const ps = l.members.filter(m => present.has(m)).map(player).filter(Boolean);
-    return `
-    <div class="lrow">
-      <button class="lhead" data-act="open" data-type="group" data-id="${l.id}">
-        <span class="ln">${esc(l.name)}</span>
-        <span class="lp">${evPoints(evts,'group',l.id)} <small>PTS</small></span>
-        <span class="lg">Line goals ›</span>${badge(nowCount('group', l.id))}
-      </button>
-      <div class="lplayers">${ps.map(pbtn).join('') || '<span class="breakdown">Nobody here</span>'}</div>
-    </div>`; }).join('') + (others.length ? `
-    <div class="lrow"><div class="lhead static"><span class="ln">Other</span></div><div class="lplayers">${others.map(pbtn).join('')}</div></div>` : '');
+  const evts = g.events, present = new Set(gPresent(g)), ids = new Set(gGoalIds(g));
+  const goals = S.goals.filter(x => ids.has(x.id));
+  if (!goals.find(x => x.id === UI.liveGoal)) UI.liveGoal = goals[0] ? goals[0].id : null;
+  const goal = goals.find(x => x.id === UI.liveGoal);
+  const cnt = (type, id) => evts.filter(e => e.goalId === goal.id && e.targetType === type && (type === 'team' || e.targetId === id)).length;
+
+  const strip = goals.map(x => {
+    const n = evts.filter(e => e.goalId === x.id).length;
+    return `<button class="gpick ${x.id === UI.liveGoal ? 'on' : ''}" data-act="lgoal" data-id="${x.id}">
+      <span class="ic">${esc(x.icon || '⭐')}</span><span class="gn">${esc(x.name)}</span>
+      <span class="gs">${SCOPE_SHORT[x.scope]} · ${x.points} pt${x.points == 1 ? '' : 's'}</span><span class="gc">${n}</span></button>`;
+  }).join('');
+
+  let targets = '';
+  if (!goal) targets = '<div class="empty">No goals for this game. Pick some under ‹ Lineup.</div>';
+  else if (goal.scope === 'individual'){
+    const tile = p => { const n = cnt('player', p.id);
+      return `<button class="pb ${n ? 'has' : ''}" data-act="give" data-type="player" data-id="${p.id}"><span class="pn">${p.number ? `<small>#${esc(p.number)}</small>` : ''}${esc(p.name)}</span><span class="pp">${n || ''}</span></button>`; };
+    const lines = gLines(g), inLine = new Set(lines.flatMap(l => l.members));
+    targets = lines.map(l => { const ps = l.members.filter(m => present.has(m)).map(player).filter(Boolean);
+      return ps.length ? `<div class="trow"><div class="tlabel">${esc(l.name)}</div><div class="lplayers">${ps.map(tile).join('')}</div></div>` : ''; }).join('');
+    const others = S.players.filter(p => present.has(p.id) && !inLine.has(p.id));
+    if (others.length) targets += `<div class="trow"><div class="tlabel">Other</div><div class="lplayers">${others.map(tile).join('')}</div></div>`;
+    if (!targets) targets = '<div class="empty">Nobody is marked as here. Tap ‹ Lineup.</div>';
+  } else if (goal.scope === 'group'){
+    targets = `<div class="lplayers wide">${gLines(g).map(l => { const n = cnt('group', l.id);
+      const names = l.members.filter(m => present.has(m)).map(m => esc((player(m) || {}).name || '')).join(' · ');
+      return `<button class="pb tall ${n ? 'has' : ''}" data-act="give" data-type="group" data-id="${l.id}"><span class="pn">${esc(l.name)}<small>${names || 'Nobody here'}</small></span><span class="pp">${n || ''}</span></button>`; }).join('')}</div>`;
+  } else {
+    const n = cnt('team');
+    targets = `<button class="pb team ${n ? 'has' : ''}" data-act="give" data-type="team" data-id="team"><span class="pn">Whole Team<small>Tap each time the team does it</small></span><span class="pp">${n || ''}</span></button>`;
+  }
+
+  const tally = goal ? Object.values(evts.filter(e => e.goalId === goal.id).reduce((m, e) => {
+    const k = e.targetType + e.targetId; (m[k] = m[k] || { name: e.targetName, n: 0 }).n++; return m; }, {})).sort((a, b) => b.n - a.n) : [];
 
   $('#game').innerHTML = `
     <div class="bar">
@@ -554,51 +610,26 @@ function renderLive(g){
       <div class="seg">${PERIODS.map(p => `<button class="${g.period===p?'on':''}" data-act="period" data-p="${p}">${p==='OT'?'OT':'P'+p}</button>`).join('')}</div>
       <button class="btn" data-act="endgame" style="height:56px">End Game</button>
     </div>
+    <div class="gstrip">${strip}</div>
     <div class="gamegrid">
-      <div>
-        <button class="teamrow" data-act="open" data-type="team" data-id="team">
-          <span class="ln">Whole Team</span><span class="lp">${evPoints(evts,'team')} <small>PTS</small></span><span class="lg">Team goals ›</span>${badge(nowCount('team'))}
-        </button>
-        ${rows || '<div class="empty">Nobody is marked as here. Tap ‹ Lineup.</div>'}
-      </div>
+      <div>${goal ? `<div class="thead">${esc(goal.icon || '⭐')} <b>${esc(goal.name)}</b> — tap ${goal.scope === 'individual' ? 'each player' : goal.scope === 'group' ? 'each line' : 'the team'} who did it</div>` : ''}${targets}</div>
       <div class="panel">
-        <h2>This game</h2>
-        <p class="sub">${evts.length} awards · ${evts.reduce((a,e)=>a+e.points,0)} points</p>
-        <div class="feed">${[...evts].sort((a,b) => b.ts - a.ts).slice(0,40).map(e => `
-          <div class="fe"><span class="p">+${e.points}</span>
-            <span class="t">${esc(e.targetName)} — ${esc(e.goalName)}<small>${e.period==='OT'?'OT':'P'+e.period} · ${new Date(e.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}${e.coach ? ' · ' + esc(e.coach) : ''}</small></span>
-            <button class="ib del" data-act="delev" data-id="${e.id}">✕</button></div>`).join('') || '<div class="empty">Tap a player, line, or team to award points</div>'}</div>
+        ${goal ? `<h2>${esc(goal.icon || '')} ${esc(goal.name)}</h2>
+        <p class="sub">${tally.reduce((a, t) => a + t.n, 0)} this game · ${goal.points} pt${goal.points == 1 ? '' : 's'} each</p>
+        <div class="list" style="margin:0 0 18px">${tally.map(t => `<div class="fe"><span class="t"><b>${esc(t.name)}</b></span><span class="p">×${t.n}</span></div>`).join('') || '<div class="empty">Nobody yet</div>'}</div>` : ''}
+        <h2>Recent</h2>
+        <div class="feed" style="margin-top:8px">${[...evts].sort((a,b) => b.ts - a.ts).slice(0, 15).map(e => `
+          <div class="fe"><span class="t">${esc(e.targetName)} — ${esc(e.goalName)}<small>${e.period==='OT'?'OT':'P'+e.period} · ${new Date(e.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}${e.coach ? ' · ' + esc(e.coach) : ''}</small></span>
+            <button class="ib del" data-act="delev" data-id="${e.id}">✕</button></div>`).join('') || '<div class="empty">Nothing yet</div>'}</div>
       </div>
     </div>`;
 }
-function goalButtons(g, type, id){
-  const scope = {player:'individual', group:'group', team:'team'}[type], ids = new Set(gGoalIds(g));
-  const goals = S.goals.filter(x => x.scope === scope && ids.has(x.id));
-  if (!goals.length) return `<div class="empty">No ${scope === 'group' ? 'line' : scope} goals for this game. Turn some on under ‹ Lineup.</div>`;
-  return `<div class="goalbtns">${goals.map(x => {
-    const c = g.events.filter(e => e.period === g.period && e.goalId === x.id && e.targetType === type && (type==='team' || e.targetId === id)).length;
-    return `<button class="gb" data-act="award" data-goal="${x.id}" data-type="${type}" data-id="${id}">
-      <span class="ic">${esc(x.icon || '⭐')}</span><span class="gn">${esc(x.name)}</span><span class="gp">+${x.points}</span>
-      ${c ? `<span class="cnt">×${c} this period</span>` : ''}</button>`;
-  }).join('')}</div>`;
-}
-function renderSheet(){
-  const el = $('#sheet'), { type, id } = UI.sheet;
-  let head, body;
-  if (type === 'sync'){ head = `<div><h3>Team Sync</h3><small>Share data with other coaches through a Google Sheet</small></div>`; body = syncForm(); }
-  else {
-    const g = game();
-    if (!g || UI.view !== 'game' || UI.mode !== 'live') return ACT.close();
-    if (type === 'player'){ const p = player(id); if (!p) return ACT.close(); head = `<div class="jn">${esc(p.number || '')}</div><div><h3>${esc(p.name)}</h3><small>Individual goals</small></div>`; }
-    else if (type === 'group'){ const l = gLines(g).find(x => x.id === id); if (!l) return ACT.close();
-      head = `<div><h3>${esc(l.name)}</h3><small>${l.members.filter(m => gPresent(g).includes(m)).map(m => esc(pname(player(m)))).join(' · ')}</small></div>`; }
-    else head = `<div><h3>Whole Team</h3><small>Team goals</small></div>`;
-    body = goalButtons(g, type, id);
-  }
-  el.innerHTML = `<div class="s"><div class="sh">${head}<button class="btn primary" data-act="close">Done</button></div>${body}</div>`;
+function renderSheet(){ // only used for sync settings now
+  const el = $('#sheet');
+  el.innerHTML = `<div class="s"><div class="sh"><div><h3>Team Sync</h3><small>Share data with other coaches through a Google Sheet</small></div><button class="btn primary" data-act="close">Done</button></div>${syncForm()}</div>`;
   el.classList.add('on');
 }
-function award(goalId, type, id){
+function award(goalId, type, id, btn){
   const g = game(), goal = S.goals.find(x => x.id === goalId);
   let targetName, members;
   if (type === 'player'){ targetName = pname(player(id)); members = [id]; }
@@ -607,9 +638,10 @@ function award(goalId, type, id){
   const e = { id: uid(), ts: Date.now(), period: g.period || '1', goalId, goalName: goal.name, points: Number(goal.points) || 0,
               targetType: type, targetId: type === 'team' ? 'team' : id, targetName, members, coach: SY.coach || '' };
   commit({ t:'ev', g:g.id, v:e }); lastUndo = { t:'evdel', id:e.id };
-  toast(`+${e.points} ${targetName} · ${goal.icon || ''} ${goal.name}`, true);
+  toast(`${goal.icon || ''} ${goal.name} → ${targetName}`, true);
   render();
-  const b = document.querySelector(`.gb[data-goal="${goalId}"]`); if (b){ b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash'); }
+  const b = document.querySelector(`[data-act="give"][data-type="${type}"][data-id="${id}"]`);
+  if (b){ b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash'); }
 }
 function toast(msg, undo){
   $('#toastMsg').textContent = msg; $('#toast').classList.add('on');
@@ -617,47 +649,66 @@ function toast(msg, undo){
   clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('on'), 3500);
 }
 
-/* ---------------- STATS ---------------- */
-function statGames(){ return UI.statsGame === 'all' ? S.games : S.games.filter(g => g.id === UI.statsGame); }
-function table(rows, label){
-  const max = Math.max(1, ...rows.map(r => r.pts));
-  return `<table><tr><th></th><th>${label}</th><th class="barc"></th><th class="r">Pts</th></tr>${rows.map((r,i) => `
-    <tr><td class="rank">${i+1}</td><td><b>${esc(r.name)}</b><div class="breakdown">${esc(r.detail || '')}</div></td>
-    <td class="barc"><div class="barv" style="width:${r.pts/max*100}%"></div></td><td class="r"><b>${r.pts}</b></td></tr>`).join('')}</table>`;
-}
+/* ---------------- STATS: one grid, rows = players/lines/team, columns = goals or games ---------------- */
+function statGames(){ return UI.stGame === 'all' ? S.games : S.games.filter(g => g.id === UI.stGame); }
 function renderStats(){
-  if (UI.statsGame !== 'all' && !S.games.find(g => g.id === UI.statsGame)) UI.statsGame = 'all';
-  const ev = statGames().flatMap(g => g.events);
-  const sum = l => l.reduce((a,e) => a + e.points, 0);
-  const detail = list => { const m = {}; list.forEach(e => m[e.goalName] = (m[e.goalName]||0) + 1); return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `${k} ×${v}`).join(', '); };
-  const pRows = S.players.map(p => {
-    const own = ev.filter(e => e.targetType === 'player' && e.targetId === p.id);
-    const shared = UI.share ? ev.filter(e => e.targetType !== 'player' && (e.members || []).includes(p.id)) : [];
-    return { name: pname(p), pts: sum(own) + sum(shared), detail: detail(own) };
-  }).sort((a,b) => b.pts - a.pts);
-  const byLine = {}; ev.filter(e => e.targetType === 'group').forEach(e => (byLine[e.targetName] = byLine[e.targetName] || []).push(e));
-  const gRows = Object.entries(byLine).map(([name, l]) => ({ name, pts: sum(l), detail: detail(l) })).sort((a,b) => b.pts - a.pts);
-  const team = ev.filter(e => e.targetType === 'team');
-  const goalRows = S.goals.map(x => { const l = ev.filter(e => e.goalId === x.id); return { name: `${x.icon||''} ${x.name}`, pts: sum(l), detail: `${l.length} times` }; }).sort((a,b) => b.pts - a.pts);
+  if (UI.stGame !== 'all' && !S.games.find(g => g.id === UI.stGame)) UI.stGame = 'all';
+  if (UI.stGoal !== 'all' && !S.goals.find(g => g.id === UI.stGoal)) UI.stGoal = 'all';
+  const L = UI.stLevel, byGame = UI.stCols === 'games';
+  const games = [...S.games].sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  let rows;
+  if (L === 'player') rows = S.players.map(p => ({ name: pname(p), here: g => gPresent(g).includes(p.id),
+    match: e => (e.targetType === 'player' && e.targetId === p.id) || (UI.share && e.targetType !== 'player' && (e.members || []).includes(p.id)) }));
+  else if (L === 'group'){
+    const names = [...new Set(S.groups.map(x => x.name).concat(S.games.flatMap(g => g.events.filter(e => e.targetType === 'group').map(e => e.targetName))))];
+    rows = names.map(n => ({ name: n, here: g => gLines(g).some(l => l.name === n), match: e => e.targetType === 'group' && e.targetName === n }));
+  } else rows = [{ name: 'Team goals', here: () => true, match: e => e.targetType === 'team' }, { name: 'Everything combined', here: () => true, match: () => true }];
+
+  const scope = { player: 'individual', group: 'group', team: 'team' }[L];
+  let cols, measure;
+  if (!byGame){
+    const ev = statGames().flatMap(g => g.events);
+    const gl = S.goals.filter(x => x.scope === scope || L === 'team' || (L === 'player' && UI.share) || ev.some(e => e.goalId === x.id && rows.some(r => r.match(e))));
+    cols = gl.map(x => ({ head: `${x.icon || ''} ${x.name}`, sub: `${x.points} pt${x.points == 1 ? '' : 's'}`, val: r => ev.filter(e => e.goalId === x.id && r.match(e)).length }));
+    rows.forEach(r => { r.total = ev.filter(r.match).reduce((a,e) => a + weight(e), 0); r.cells = cols.map(c => c.val(r)); });
+    measure = 'Cells are tallies. Total = tallies × each goal\'s points.';
+  } else {
+    const goal = S.goals.find(x => x.id === UI.stGoal);
+    cols = games.map(g => ({ head: fmtDate(g.date), sub: g.name, g }));
+    rows.forEach(r => {
+      r.cells = cols.map(c => { if (!r.here(c.g)) return null;
+        const l = c.g.events.filter(e => r.match(e) && (!goal || e.goalId === goal.id));
+        return goal ? l.length : l.reduce((a,e) => a + weight(e), 0); });
+      const played = r.cells.filter(v => v !== null);
+      r.total = played.reduce((a,v) => a + v, 0); r.avg = played.length ? r.total / played.length : 0;
+    });
+    measure = goal ? `Cells are times “${goal.name}” was earned in each game. Blank = not at that game.` : 'Cells are points (tallies × each goal\'s points) in each game. Blank = not at that game.';
+  }
+  rows.sort((a,b) => b.total - a.total);
+  const max = Math.max(1, ...rows.flatMap(r => r.cells.filter(v => v !== null)));
+  const cell = v => v === null ? '<td class="c na"></td>' : `<td class="c" style="background:rgba(255,255,255,${(v / max * .38).toFixed(3)})">${v || '·'}</td>`;
+  const seg = (act, cur, opts) => `<div class="segs" style="flex:none">${opts.map(([v,l]) => `<button class="${cur === v ? 'on' : ''}" data-act="${act}" data-v="${v}">${l}</button>`).join('')}</div>`;
+
   $('#stats').innerHTML = `
     <div class="toolbar">
-      <select data-act-change="statsgame">
-        <option value="all">All games (${S.games.length})</option>
-        ${[...S.games].sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(g => `<option value="${g.id}" ${UI.statsGame===g.id?'selected':''}>${esc(fmtDate(g.date))} — ${esc(g.name)} (${gameStatus(g)})</option>`).join('')}
-      </select>
-      <label class="ck"><input type="checkbox" data-act-change="share" ${UI.share?'checked':''}> Count line & team points toward each player</label>
-      <span style="flex:1"></span>
+      ${seg('stlevel', L, [['player','Players'],['group','Lines'],['team','Team']])}
+      ${seg('stcols', UI.stCols, [['goals','By goal'],['games','By game']])}
+      ${byGame
+        ? `<select data-act-change="stgoal"><option value="all">Overall points</option>${S.goals.map(x => `<option value="${x.id}" ${UI.stGoal === x.id ? 'selected' : ''}>${esc(x.icon || '')} ${esc(x.name)}</option>`).join('')}</select>`
+        : `<select data-act-change="stgame"><option value="all">All games (${S.games.length})</option>${[...games].reverse().map(g => `<option value="${g.id}" ${UI.stGame === g.id ? 'selected' : ''}>${esc(fmtDate(g.date))} — ${esc(g.name)}</option>`).join('')}</select>`}
+      ${L === 'player' ? `<label class="ck"><input type="checkbox" data-act-change="share" ${UI.share ? 'checked' : ''}> Include line & team goals</label>` : ''}
+    </div>
+    <div class="panel">
+      <p class="sub" style="margin-bottom:10px">${measure} Change a goal's points in the Goals tab and every game recalculates.</p>
+      ${cols.length ? `<div class="mwrap"><table class="matrix">
+        <tr><th class="rn"></th>${cols.map(c => `<th class="c">${esc(c.head)}<small>${esc(c.sub)}</small></th>`).join('')}<th class="c tot">Total</th>${byGame ? '<th class="c tot">Avg</th>' : ''}</tr>
+        ${rows.map(r => `<tr><td class="rn">${esc(r.name)}</td>${r.cells.map(cell).join('')}<td class="c tot">${r.total}</td>${byGame ? `<td class="c tot">${r.avg.toFixed(1)}</td>` : ''}</tr>`).join('')}
+      </table></div>` : `<div class="empty">${byGame ? 'No games yet' : 'No goals for this level yet'}</div>`}
+    </div>
+    <div class="toolbar" style="margin-top:16px">
       <button class="btn" data-act="csv">Export CSV</button>
       <button class="btn" data-act="backup">Save Backup</button>
       <button class="btn" data-act="import">Restore Backup</button>
-    </div>
-    <div class="grid3">
-      <div class="panel"><h2>Players</h2>${pRows.length ? table(pRows, 'Player') : '<div class="empty">No players</div>'}</div>
-      <div style="display:flex;flex-direction:column;gap:16px">
-        <div class="panel"><h2>Team</h2><div class="bigstat">${sum(team)}</div><div class="breakdown" style="margin-top:6px">${esc(detail(team)) || 'No team awards yet'}</div></div>
-        <div class="panel"><h2>Lines</h2>${gRows.length ? table(gRows, 'Line') : '<div class="empty">No line awards yet</div>'}</div>
-      </div>
-      <div class="panel"><h2>Goals</h2>${table(goalRows, 'Goal')}</div>
     </div>`;
 }
 
@@ -859,9 +910,11 @@ const ACT = {
   period: d => { setGame(game(), { period:d.p }); render(); },
   endgame: () => { const g = game(); if (!confirm('End this game? You can reopen it later.')) return;
     setGame(g, { ended:true }); UI.potgGame = g.id; UI.tracker = 'potg'; UI.mode = 'prep'; setView('potg'); toast('Game over. Pick the Player of the Game!'); },
-  open: d => { UI.sheet = { type:d.type, id:d.id }; renderSheet(); },
   close: () => { UI.sheet = null; $('#sheet').classList.remove('on'); },
-  award: d => award(d.goal, d.type, d.id),
+  lgoal: d => { UI.liveGoal = d.id; render(); },
+  give: (d, b) => award(UI.liveGoal, d.type, d.id, b),
+  stlevel: d => { UI.stLevel = d.v; render(); },
+  stcols: d => { UI.stCols = d.v; render(); },
   undo: () => { if (!lastUndo) return; commit(lastUndo); lastUndo = null; $('#toast').classList.remove('on'); render(); },
   delev: d => { commit({ t:'evdel', id:d.id }); render(); },
 
@@ -911,7 +964,8 @@ document.addEventListener('change', e => {
   }
   if (d.gline){ const g = game(); const lines = clone(gLines(g)); const l = lines.find(x => x.id === d.gline); if (l){ l.name = el.value.trim(); setGame(g, { lines }); } }
   if (d.gfield){ setGame(game(), { [d.gfield]: el.value.trim() }); }
-  if (d.actChange === 'statsgame'){ UI.statsGame = el.value; renderStats(); }
+  if (d.actChange === 'stgame'){ UI.stGame = el.value; renderStats(); }
+  if (d.actChange === 'stgoal'){ UI.stGoal = el.value; renderStats(); }
   if (d.actChange === 'share'){ UI.share = el.checked; renderStats(); }
   if (d.actChange === 'potggame'){ UI.potgGame = el.value; renderPotg(); }
 });
@@ -948,7 +1002,7 @@ $('#importFile').addEventListener('change', e => {
       if (!confirm('Replace everything on this device with this backup?' + (SY.url ? ' It will also be sent to the team Sheet.' : ''))) return;
       S = Object.assign(blankState(), d); save();
       if (SY.url){ OUT.push(...snapshotOps(S)); saveSync(); sync(); }
-      UI.statsGame = 'all'; render(); toast('Backup restored');
+      UI.stGame = 'all'; render(); toast('Backup restored');
     } catch(err){ alert('Could not read file: ' + err.message); }
     e.target.value = '';
   };
