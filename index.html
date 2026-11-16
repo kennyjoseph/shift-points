@@ -262,6 +262,17 @@ header nav{margin-left:0}
 .syncf label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--dim);font-weight:700}
 .syncf input{font-size:16px}
 .joinbox{margin-bottom:16px;border-color:var(--fg)}
+.goalspanel{border-color:var(--line2)}
+.cklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:8px}
+.ckrow{display:flex;align-items:center;gap:12px;border:1px solid var(--line2);background:var(--panel2);border-radius:14px;padding:12px 14px;text-align:left;min-height:58px}
+.ckrow .box{width:26px;height:26px;flex:none;border:2px solid var(--dim);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px}
+.ckrow.on{border-color:var(--fg)}
+.ckrow.on .box{background:var(--fg);border-color:var(--fg);color:var(--ink)}
+.ckrow:not(.on){color:var(--dim)}
+.ckrow .ic{font-size:22px}
+.ckrow .nm{flex:1;font-weight:800;font-size:16px}
+.ckrow .pt{font-size:12px;font-weight:700;color:var(--dim)}
+.offhint{width:100%;margin-top:14px;color:var(--dim);border-style:dashed}
 .whos{display:flex;flex-wrap:wrap;gap:8px}
 .whos .btn{padding:14px 20px;font-size:17px}
 .item.locked{opacity:.85}
@@ -361,7 +372,7 @@ header nav{margin-left:0}
 <script src="ops.js"></script>
 <script>
 const KEY = 'shiftpoints.v1';
-const APP_VERSION = '14';
+const APP_VERSION = '15';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = s => document.querySelector(s);
@@ -596,7 +607,7 @@ function renderGameList(){
   <div class="grid3 two">
     <div class="panel">
       <img src="logo.png" alt="Clarence" style="width:160px;border-radius:10px;margin-bottom:12px">
-      <h2>New Game</h2><p class="sub">Starts with the lines and goals from your last game. You can change them before puck drop.</p>
+      <h2>New Game</h2><p class="sub">Starts with your last game's lines and goals, plus any goals added since. You can change them before puck drop.</p>
       <form data-form="newgame" style="display:flex;flex-direction:column;gap:10px">
         <input name="o" placeholder="Opponent (e.g. vs Sabres)" autocomplete="off" style="padding:14px;font-size:17px">
         <input name="d" type="date" value="${today()}" style="padding:14px;font-size:17px">
@@ -622,10 +633,12 @@ function renderPrep(g){
   const here = S.players.filter(p => present.has(p.id));
   const lines = gLines(g).map(l => Object.assign({}, l, { members: l.members.filter(m => present.has(m)) }));
   const ids = new Set(gGoalIds(g));
-  const goalChips = SCOPES.map(([sc, label]) => {
+  const goalChecks = SCOPES.map(([sc, label]) => {
     const list = S.goals.filter(x => x.scope === sc);
-    return list.length ? `<div class="scopehead">${label}</div><div class="chips" style="padding:4px 0">${list.map(x =>
-      `<button class="chip ${ids.has(x.id) ? 'on' : ''}" data-act="ggoal" data-id="${x.id}">${esc(x.icon || '⭐')} ${esc(x.name)} · ${x.points}</button>`).join('')}</div>` : '';
+    return list.length ? `<div class="scopehead">${label} goals</div><div class="cklist">${list.map(x =>
+      `<button class="ckrow ${ids.has(x.id) ? 'on' : ''}" data-act="ggoal" data-id="${x.id}">
+        <span class="box">${ids.has(x.id) ? '✓' : ''}</span><span class="ic">${esc(x.icon || '⭐')}</span>
+        <span class="nm">${esc(x.name)}</span><span class="pt">${x.points} pt${x.points == 1 ? '' : 's'}</span></button>`).join('')}</div>` : '';
   }).join('');
   $('#game').innerHTML = `
     <div class="bar">
@@ -637,7 +650,14 @@ function renderPrep(g){
       <span class="status s-${gameStatus(g).toLowerCase()}">${gameStatus(g)}</span>
       <button class="btn primary golive" data-act="golive">${g.ended ? 'Reopen Game' : 'Go Live ▸'}</button>
     </div>
-    <div class="grid3">
+    <div class="panel goalspanel">
+      <div class="row" style="justify-content:space-between;flex-wrap:wrap">
+        <div><h2>Goals This Game</h2><p class="sub" style="margin:0">Check the goals you'll use today: <b style="color:var(--fg)">${ids.size} checked</b> (3–5 works best). New goals are made in the Goals tab.</p></div>
+        <div class="row"><button class="btn" data-act="allgoals" data-v="1">Check all</button><button class="btn" data-act="allgoals" data-v="0">Uncheck all</button></div>
+      </div>
+      ${goalChecks || '<div class="empty">No goals yet. Add some in the Goals tab.</div>'}
+    </div>
+    <div class="grid3 two" style="margin-top:16px">
       <div class="panel">
         <h2>Who's Here</h2><p class="sub">${here.length} of ${S.players.length} players. Tap to mark someone out.</p>
         <div class="row" style="margin-bottom:8px"><button class="btn" data-act="allhere" data-v="1">Everyone</button><button class="btn" data-act="allhere" data-v="0">Nobody</button></div>
@@ -648,10 +668,6 @@ function renderPrep(g){
         <form data-form="gline" class="row"><input class="grow" name="n" placeholder="Add a line…" autocomplete="off"><button class="btn primary">Add</button></form>
         <button class="btn" data-act="resetlines" style="margin-top:8px;width:100%">Reset to default lines</button>
         <div class="list">${lineCards(lines, here, 'game')}</div>
-      </div>
-      <div class="panel">
-        <h2>Goals This Game</h2><p class="sub">${ids.size} in play (3–5 works best). Add new goals in the Goals tab.</p>
-        ${goalChips || '<div class="empty">No goals yet</div>'}
       </div>
     </div>
     <div style="margin-top:24px;text-align:center"><button class="btn" data-act="delgame" data-id="${g.id}" style="color:var(--dim)">Delete this game</button></div>`;
@@ -683,7 +699,8 @@ function renderLive(g){
       <button class="btn" data-act="endgame" style="height:56px">End Game</button>
     </div>
     <div class="gamegrid">
-      <div class="gcards">${cards || '<div class="empty">No goals for this game. Pick some under ‹ Lineup.</div>'}</div>
+      <div><div class="gcards">${cards || '<div class="empty">No goals checked for this game.</div>'}</div>
+        ${S.goals.length > goals.length ? `<button class="btn offhint" data-act="prep">${S.goals.length - goals.length} more goal${S.goals.length - goals.length === 1 ? ' is' : 's are'} off for this game · Change goals ›</button>` : ''}</div>
       <div class="panel">
         ${goals.length ? periodTable(g, goals) : ''}
         <h2>Recent</h2>
@@ -1145,13 +1162,14 @@ const ACT = {
   games: () => { openGame(null); render(); },
   opengame: d => { UI.stGame = d.id; const g = S.games.find(x => x.id === d.id); openGame(d.id, g && !g.ended && g.events.length ? 'live' : 'prep'); render(); },
   prep: () => { UI.mode = 'prep'; render(); },
-  golive: () => { const g = game(); if (g.ended){ if (!confirm('Reopen this game for more awards?')) return; setGame(g, { ended:false }); } UI.mode = 'live'; render(); window.scrollTo(0, 0); },
+  golive: () => { const g = game(); if (!gGoalIds(g).some(id => S.goals.find(x => x.id === id))) return alert('Check at least one goal for this game first.'); if (g.ended){ if (!confirm('Reopen this game for more awards?')) return; setGame(g, { ended:false }); } UI.mode = 'live'; render(); window.scrollTo(0, 0); },
   here: d => { const g = game(), p = new Set(gPresent(g)); p.has(d.p) ? p.delete(d.p) : p.add(d.p); setGame(g, { present:S.players.map(x => x.id).filter(id => p.has(id)) }); render(); },
   allhere: d => { setGame(game(), { present: d.v === '1' ? S.players.map(x => x.id) : [] }); render(); },
   glmember: d => linesOp(game(), ls => { const l = ls.find(x => x.id === d.g); l.members = l.members.includes(d.p) ? l.members.filter(m => m !== d.p) : [...l.members, d.p]; }),
   glmove: d => { const g = game(), ids = swapIds(gLines(g), d.id, +d.dir); if (ids) linesOp(g, ls => ls.sort((a,b) => ids.indexOf(a.id) - ids.indexOf(b.id))); },
   gldel: d => { const g = game(), l = gLines(g).find(x => x.id === d.id); if (confirm(`Remove “${l.name}” from this game?`)) linesOp(g, ls => ls.splice(ls.findIndex(x => x.id === d.id), 1)); },
   resetlines: () => { if (confirm('Replace this game\'s lines with the default lines from the Roster tab?')) { setGame(game(), { lines:clone(S.groups) }); render(); } },
+  allgoals: d => { setGame(game(), { goalIds: d.v === '1' ? S.goals.map(x => x.id) : [] }); render(); },
   ggoal: d => { const g = game(), ids = new Set(gGoalIds(g)); ids.has(d.id) ? ids.delete(d.id) : ids.add(d.id); setGame(g, { goalIds:S.goals.map(x => x.id).filter(id => ids.has(id)) }); render(); },
   delgame: d => { const g = S.games.find(x => x.id === d.id); if (!confirm(`Delete “${g.name}” and all of its points? This can't be undone.`)) return; commit({ t:'gamedel', id:g.id }); openGame(null); render(); },
   period: d => { setGame(game(), { period:d.p }); render(); },
@@ -1259,7 +1277,8 @@ document.addEventListener('submit', e => {
     const prev = [...S.games].sort((a,b) => (a.date||'').localeCompare(b.date||'')).pop();
     const id = uid();
     commit({ t:'game', v:{ id, name: v('o') || 'Game', date: v('d') || today(), period:'1', ended:false,
-      present: S.players.map(p => p.id), lines: clone(prev ? gLines(prev) : S.groups), goalIds: prev ? gGoalIds(prev).slice() : S.goals.map(x => x.id) } });
+      present: S.players.map(p => p.id), lines: clone(prev ? gLines(prev) : S.groups), created: Date.now(),
+      goalIds: prev ? S.goals.filter(x => gGoalIds(prev).includes(x.id) || (x.at && x.at > (prev.created || 0))).map(x => x.id) : S.goals.map(x => x.id) } });
     openGame(id, 'prep'); UI.stGame = id; render(); return;
   } else return;
   render();
